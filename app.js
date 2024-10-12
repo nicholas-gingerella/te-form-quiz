@@ -58,23 +58,6 @@ const words = [
     }
   });
   
-//   function createQuizzes() {
-//     shuffleWords();
-//     split now shuffled words into arrays of 10 questions each
-//     put all 10 question quizzes into a list, where each index
-//     is itself a list of 10 words that will be quizzed on.
-//     return a list of quizzes that we can iterate through and
-//     quiz the user on.
-//   }
-
-//   function startQuizzing() {
-//     take in a list of quizzes (that is, 10 words)
-//     start each quiz
-//     at the end of the quiz, show results for the quiz
-//     then start the next quiz
-//     do this until there are no more quizzes left
-//   }
-  
   function startQuiz() {
     document.getElementById("start-button").style.display = "none";
     document.getElementById("quiz-area").style.display = "block";
