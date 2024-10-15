@@ -61,6 +61,12 @@ body {
     margin-top: 10px;
     min-height: 1.5em;
   }
+
+  #english {
+    font-size: 2rem;
+    margin-top: 10px;
+    min-height: 2em;
+  }
   
   .instruction {
     font-size: 0.9rem;
