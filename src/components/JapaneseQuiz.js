@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Papa from 'papaparse';
 
 // Helper function to create verb objects
@@ -264,7 +263,7 @@ const JapaneseQuiz = () => {
   };
 
   const renderInputField = (label, field) => (
-    <div>
+    <div className="mb-4">
       <label className="block text-sm font-medium mb-1 text-foreground">{label}</label>
       <Input
         value={userAnswers[field]}
@@ -282,7 +281,7 @@ const JapaneseQuiz = () => {
   );
 
   return (
-    <Card className="w-full max-w-2xl mx-auto bg-card">
+    <Card className="w-full max-w-5xl mx-auto bg-card"> {/* Increased max-width for side-by-side layout */}
       <CardHeader className="text-center">
         {loading ? (
           <div>Loading word data...</div>
@@ -313,31 +312,30 @@ const JapaneseQuiz = () => {
 
       {!loading && !error && currentWord && (
         <CardContent>
-          <Tabs defaultValue="present" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-muted">
-              <TabsTrigger value="present">Present Tense</TabsTrigger>
-              <TabsTrigger value="past">Past Tense</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="present" className="space-y-4">
+          <div className="grid grid-cols-2 gap-8">
+            {/* Present Tense Section */}
+            <div className="border-r border-border pr-8">
+              <h3 className="text-lg font-semibold mb-4 text-foreground">Present Tense</h3>
               {renderInputField('Plain Form Positive', 'nonPastPlainPositive')}
               {renderInputField('Plain Form Negative', 'nonPastPlainNegative')}
               {renderInputField('Polite Form Positive', 'nonPastPolitePositive')}
               {renderInputField('Polite Form Negative', 'nonPastPoliteNegative')}
-            </TabsContent>
-            
-            <TabsContent value="past" className="space-y-4">
-              {renderInputField('Plain Form Positive (Past)', 'pastPlainPositive')}
-              {renderInputField('Plain Form Negative (Past)', 'pastPlainNegative')}
-              {renderInputField('Polite Form Positive (Past)', 'pastPolitePositive')}
-              {renderInputField('Polite Form Negative (Past)', 'pastPoliteNegative')}
-            </TabsContent>
-          </Tabs>
+            </div>
+
+            {/* Past Tense Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">Past Tense</h3>
+              {renderInputField('Plain Form Positive', 'pastPlainPositive')}
+              {renderInputField('Plain Form Negative', 'pastPlainNegative')}
+              {renderInputField('Polite Form Positive', 'pastPolitePositive')}
+              {renderInputField('Polite Form Negative', 'pastPoliteNegative')}
+            </div>
+          </div>
 
           <Button 
             onClick={checkAnswers}
             disabled={feedback.isSubmitted}
-            className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="w-full mt-8 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Submit
           </Button>
