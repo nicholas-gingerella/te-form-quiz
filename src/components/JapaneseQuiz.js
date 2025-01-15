@@ -6,64 +6,64 @@ import Papa from 'papaparse';
 
 // Helper function to create verb objects
 function createVerb({
+  type, group, english, kanji, hiragana, root, romaji,
+  te, ta, tai, conditional,
+  nonPastPositive, nonPastNegative, politePositive, politeNegative,
+  pastPositive, pastNegative, politePastPositive, politePastNegative,
+  potentialPlainPositive, potentialPlainNegative,
+  potentialPolitePositive, potentialPoliteNegative,
+  potentialPastPositive, potentialPastNegative,
+  volitionalPlainPositive, volitionalPlainNegative,
+  volitionalPolitePositive, volitionalPoliteNegative
+}) {
+  return {
     type, group, english, kanji, hiragana, root, romaji,
     te, ta, tai, conditional,
-    nonPastPositive, nonPastNegative, politePositive, politeNegative,
-    pastPositive, pastNegative, politePastPositive, politePastNegative,
-    potentialPlainPositive, potentialPlainNegative,
-    potentialPolitePositive, potentialPoliteNegative,
-    potentialPastPositive, potentialPastNegative,
-    volitionalPlainPositive, volitionalPlainNegative,
-    volitionalPolitePositive, volitionalPoliteNegative
-}) {
-    return {
-        type, group, english, kanji, hiragana, root, romaji,
-        te, ta, tai, conditional,
-        non_past: {
-            plain: {
-                positive: nonPastPositive,
-                negative: nonPastNegative
-            },
-            polite: {
-                positive: politePositive,
-                negative: politeNegative
-            }
-        },
-        past: {
-            plain: {
-                positive: pastPositive,
-                negative: pastNegative
-            },
-            polite: {
-                positive: politePastPositive,
-                negative: politePastNegative
-            }
-        },
-        potential: {
-            plain: {
-                positive: potentialPlainPositive,
-                negative: potentialPlainNegative
-            },
-            polite: {
-                positive: potentialPolitePositive,
-                negative: potentialPoliteNegative
-            },
-            past: {
-                positive: potentialPastPositive,
-                negative: potentialPastNegative
-            }
-        },
-        volitional: {
-            plain: {
-                positive: volitionalPlainPositive,
-                negative: volitionalPlainNegative
-            },
-            polite: {
-                positive: volitionalPolitePositive,
-                negative: volitionalPoliteNegative
-            }
-        }
-    };
+    non_past: {
+      plain: {
+        positive: nonPastPositive,
+        negative: nonPastNegative
+      },
+      polite: {
+        positive: politePositive,
+        negative: politeNegative
+      }
+    },
+    past: {
+      plain: {
+        positive: pastPositive,
+        negative: pastNegative
+      },
+      polite: {
+        positive: politePastPositive,
+        negative: politePastNegative
+      }
+    },
+    potential: {
+      plain: {
+        positive: potentialPlainPositive,
+        negative: potentialPlainNegative
+      },
+      polite: {
+        positive: potentialPolitePositive,
+        negative: potentialPoliteNegative
+      },
+      past: {
+        positive: potentialPastPositive,
+        negative: potentialPastNegative
+      }
+    },
+    volitional: {
+      plain: {
+        positive: volitionalPlainPositive,
+        negative: volitionalPlainNegative
+      },
+      polite: {
+        positive: volitionalPolitePositive,
+        negative: volitionalPoliteNegative
+      }
+    }
+  };
 }
 
 const JapaneseQuiz = () => {
@@ -101,13 +101,13 @@ const JapaneseQuiz = () => {
           throw new Error('Failed to fetch words.csv');
         }
         const csvText = await response.text();
-        
+
         Papa.parse(csvText, {
           header: true,
           skipEmptyLines: true,
           complete: (results) => {
             const parsedWords = {};
-            
+
             results.data.forEach(row => {
               parsedWords[row.romaji] = createVerb({
                 type: row.type,
@@ -141,7 +141,7 @@ const JapaneseQuiz = () => {
                 volitionalPoliteNegative: row.volitional_polite_neg
               });
             });
-            
+
             setWords(parsedWords);
             setLoading(false);
             // Select initial random word
@@ -176,10 +176,10 @@ const JapaneseQuiz = () => {
   const selectRandomWord = () => {
     const wordsList = Object.values(words);
     if (wordsList.length === 0) return;
-    
+
     const randomWord = wordsList[Math.floor(Math.random() * wordsList.length)];
     setCurrentWord(randomWord);
-    
+
     // Reset user answers
     setUserAnswers({
       nonPastPlainPositive: '',
@@ -191,14 +191,14 @@ const JapaneseQuiz = () => {
       pastPolitePositive: '',
       pastPoliteNegative: ''
     });
-    
+
     // Reset feedback
     setFeedback({
       isSubmitted: false,
       isCorrect: false,
       correctAnswers: null
     });
-  
+
     // Update timer for scoring
     setScore(prev => ({
       ...prev,
@@ -209,7 +209,7 @@ const JapaneseQuiz = () => {
   const checkAnswers = () => {
     if (!currentWord) return;
 
-    const isCorrect = 
+    const isCorrect =
       userAnswers.nonPastPlainPositive === currentWord.non_past.plain.positive &&
       userAnswers.nonPastPlainNegative === currentWord.non_past.plain.negative &&
       userAnswers.nonPastPolitePositive === currentWord.non_past.polite.positive &&
@@ -268,8 +268,8 @@ const JapaneseQuiz = () => {
       <Input
         value={userAnswers[field]}
         onChange={(e) => handleInputChange(field, e.target.value)}
-        className={feedback.isSubmitted ? 
-          (userAnswers[field] === feedback.correctAnswers?.[field] ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') 
+        className={feedback.isSubmitted ?
+          (userAnswers[field] === feedback.correctAnswers?.[field] ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10')
           : ''}
       />
       {feedback.isSubmitted && userAnswers[field] !== feedback.correctAnswers?.[field] && (
@@ -281,67 +281,82 @@ const JapaneseQuiz = () => {
   );
 
   return (
-    <Card className="w-full max-w-5xl mx-auto bg-card"> {/* Increased max-width for side-by-side layout */}
-      <CardHeader className="text-center">
-        {loading ? (
-          <div>Loading word data...</div>
-        ) : error ? (
-          <div className="text-red-400">{error}</div>
-        ) : currentWord ? (
-          <>
-            <h2 className="text-2xl font-bold text-foreground">Japanese {currentWord.type === 'verb' ? 'Verb' : 'Adjective'} Quiz</h2>
-            <div className="text-lg text-foreground">
-              <ruby>
-                {currentWord.kanji}
-                <rt>{currentWord.hiragana}</rt>
-              </ruby>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {currentWord.english}
-              <div className="text-xs mt-1">
-                Type: {currentWord.type}
-                {currentWord.group && ` (${currentWord.group}-group)`}
+    <div>
+      <Card className="w-full max-w-5xl mx-auto bg-card">
+        <CardHeader className="text-center">
+          {loading ? (
+            <div>Loading word data...</div>
+          ) : error ? (
+            <div className="text-red-400">{error}</div>
+          ) : currentWord ? (
+            <>
+              <h2 className="text-2xl font-bold text-foreground">Japanese {currentWord.type === 'verb' ? 'Verb' : 'Adjective'} Quiz</h2>
+              <div className="text-lg text-foreground">
+                <ruby>
+                  {currentWord.kanji}
+                  <rt>{currentWord.hiragana}</rt>
+                </ruby>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {currentWord.english}
+                <div className="text-xs mt-1">
+                  Type: {currentWord.type}
+                  {currentWord.group && ` (${currentWord.group}-group)`}
+                </div>
+              </div>
+              <div className="mt-2 text-foreground">
+                Score: {score.correct}/{score.total}
+              </div>
+            </>
+          ) : null}
+        </CardHeader>
+
+        {!loading && !error && currentWord && (
+          <CardContent>
+            <div className="grid grid-cols-2 gap-8">
+              <div className="border-r border-border pr-8">
+                <h3 className="text-lg font-semibold mb-4 text-foreground">Present Tense</h3>
+                {renderInputField('Plain Form Positive', 'nonPastPlainPositive')}
+                {renderInputField('Plain Form Negative', 'nonPastPlainNegative')}
+                {renderInputField('Polite Form Positive', 'nonPastPolitePositive')}
+                {renderInputField('Polite Form Negative', 'nonPastPoliteNegative')}
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-foreground">Past Tense</h3>
+                {renderInputField('Plain Form Positive', 'pastPlainPositive')}
+                {renderInputField('Plain Form Negative', 'pastPlainNegative')}
+                {renderInputField('Polite Form Positive', 'pastPolitePositive')}
+                {renderInputField('Plain Form Negative', 'pastPoliteNegative')}
               </div>
             </div>
-            <div className="mt-2 text-foreground">
-              Score: {score.correct}/{score.total}
-            </div>
-          </>
-        ) : null}
-      </CardHeader>
 
-      {!loading && !error && currentWord && (
-        <CardContent>
-          <div className="grid grid-cols-2 gap-8">
-            {/* Present Tense Section */}
-            <div className="border-r border-border pr-8">
-              <h3 className="text-lg font-semibold mb-4 text-foreground">Present Tense</h3>
-              {renderInputField('Plain Form Positive', 'nonPastPlainPositive')}
-              {renderInputField('Plain Form Negative', 'nonPastPlainNegative')}
-              {renderInputField('Polite Form Positive', 'nonPastPolitePositive')}
-              {renderInputField('Polite Form Negative', 'nonPastPoliteNegative')}
-            </div>
+            <Button 
+              onClick={checkAnswers}
+              disabled={feedback.isSubmitted}
+              className="w-full mt-8 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Submit
+            </Button>
+          </CardContent>
+        )}
+      </Card>
 
-            {/* Past Tense Section */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-foreground">Past Tense</h3>
-              {renderInputField('Plain Form Positive', 'pastPlainPositive')}
-              {renderInputField('Plain Form Negative', 'pastPlainNegative')}
-              {renderInputField('Polite Form Positive', 'pastPolitePositive')}
-              {renderInputField('Polite Form Negative', 'pastPoliteNegative')}
-            </div>
+      {/* Debug Section */}
+      <div className="mt-8 w-full max-w-5xl mx-auto">
+        <details className="bg-card rounded-lg p-4">
+          <summary className="text-foreground cursor-pointer font-semibold">
+            Debug Info
+          </summary>
+          <div className="mt-4 p-4 bg-muted rounded-md overflow-auto max-h-96">
+            <h3 className="text-foreground font-semibold mb-2">Loaded Words:</h3>
+            <pre className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {JSON.stringify(words, null, 2)}
+            </pre>
           </div>
-
-          <Button 
-            onClick={checkAnswers}
-            disabled={feedback.isSubmitted}
-            className="w-full mt-8 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Submit
-          </Button>
-        </CardContent>
-      )}
-    </Card>
+        </details>
+      </div>
+    </div>
   );
 };
 
