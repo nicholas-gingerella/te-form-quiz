@@ -3,6 +3,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Papa from 'papaparse';
+import * as wanakana from 'wanakana';
 
 // Helper function to create verb objects
 function createVerb({
@@ -167,9 +168,18 @@ const JapaneseQuiz = () => {
   }, []);
 
   const handleInputChange = (field, value) => {
+    // Convert romaji to hiragana using IMEMode
+    const hiraganaValue = wanakana.toHiragana(value, {
+      IMEMode: true,  // This enables proper handling of 'n' character combinations
+      customKanaMapping: {
+        // Add any custom mappings if needed
+        nn: 'ん',
+        n: 'ん'
+      }
+    });
     setUserAnswers(prev => ({
       ...prev,
-      [field]: value
+      [field]: hiraganaValue
     }));
   };
 
@@ -268,13 +278,24 @@ const JapaneseQuiz = () => {
       <Input
         value={userAnswers[field]}
         onChange={(e) => handleInputChange(field, e.target.value)}
-        className={feedback.isSubmitted ?
-          (userAnswers[field] === feedback.correctAnswers?.[field] ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10')
-          : ''}
+        placeholder="Type in romaji or hiragana"
+        className={`font-japanese ${
+          feedback.isSubmitted
+            ? userAnswers[field] === feedback.correctAnswers?.[field]
+              ? 'border-green-500 bg-green-500/10'
+              : 'border-red-500 bg-red-500/10'
+            : ''
+        }`}
       />
       {feedback.isSubmitted && userAnswers[field] !== feedback.correctAnswers?.[field] && (
         <div className="text-sm text-red-400 mt-1">
           Correct: {feedback.correctAnswers[field]}
+        </div>
+      )}
+      {userAnswers[field] && (
+        <div className="text-xs text-muted-foreground mt-1">
+          {/* Show romaji equivalent for reference */}
+          Romaji: {wanakana.toRomaji(userAnswers[field])}
         </div>
       )}
     </div>
