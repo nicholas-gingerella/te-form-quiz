@@ -1,0 +1,5 @@
+type,group,english,kanji,hiragana,root,romaji,te,ta,tai,conditional,non_past_plain_pos,non_past_plain_neg,non_past_polite_pos,non_past_polite_neg,past_plain_pos,past_plain_neg,past_polite_pos,past_polite_neg,potential_plain_pos,potential_plain_neg,potential_polite_pos,potential_polite_neg,potential_past_pos,potential_past_neg,potential_te,volitional_plain_pos,volitional_plain_neg,volitional_polite_pos,volitional_polite_neg
+verb,ru,to eat,食べる,たべる,たべ,taberu,たべて,たべた,たべたい,たべれば,たべる,たべない,たべます,たべません,たべた,たべなかった,たべました,たべませんでした,たべられる,たべられない,たべられます,たべられません,たべられた,たべられなかった,たべられて,たべよう,たべるまい,たべましょう,たべませんよう
+verb,u,to write,書く,かく,か,kaku,かいて,かいた,かきたい,かけば,かく,かかない,かきます,かきません,かいた,かかなかった,かきました,かきませんでした,かける,かけない,かけます,かけません,かけた,かけなかった,かけて,かこう,かくまい,かきましょう,かきませんよう
+verb,irregular,to do,する,する,し,suru,して,した,したい,すれば,する,しない,します,しません,した,しなかった,しました,しませんでした,できる,できない,できます,できません,できた,できなかった,できて,しよう,するまい,しましょう,しませんよう
+verb,irregular,to come,来る,くる,き,kuru,きて,きた,きたい,くれば,くる,こない,きます,きません,きた,こなかった,きました,きませんでした,こられる,こられない,こられます,こられません,こられた,こられなかった,こられて,こよう,くるまい,きましょう,きませんよう
