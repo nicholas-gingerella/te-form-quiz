@@ -342,17 +342,26 @@ const JapaneseQuiz = () => {
         )}
       </Card>
 
-      {/* Debug Section */}
-      <div className="mt-8 w-full max-w-5xl mx-auto">
+     {/* Debug Section */}
+     <div className="mt-8 w-full max-w-5xl mx-auto">
         <details className="bg-card rounded-lg p-4">
           <summary className="text-foreground cursor-pointer font-semibold">
             Debug Info
           </summary>
-          <div className="mt-4 p-4 bg-muted rounded-md overflow-auto max-h-96">
-            <h3 className="text-foreground font-semibold mb-2">Loaded Words:</h3>
-            <pre className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {JSON.stringify(words, null, 2)}
-            </pre>
+          <div className="mt-4 space-y-2">
+            <h3 className="text-foreground font-semibold mb-2">
+              Loaded Words ({Object.keys(words).length}):
+            </h3>
+            {Object.entries(words).map(([key, word]) => (
+              <details key={key} className="bg-muted rounded-md p-2">
+                <summary className="cursor-pointer text-foreground">
+                  {word.kanji} ({word.romaji}) - {word.english}
+                </summary>
+                <pre className="text-sm text-muted-foreground whitespace-pre-wrap mt-2 pl-4">
+                  {JSON.stringify(word, null, 2)}
+                </pre>
+              </details>
+            ))}
           </div>
         </details>
       </div>
