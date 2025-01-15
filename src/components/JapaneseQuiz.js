@@ -173,7 +173,7 @@ const JapaneseQuiz = () => {
       [field]: value
     }));
   };
-  
+
   const selectRandomWord = () => {
     const wordsList = Object.values(words);
     if (wordsList.length === 0) return;
@@ -265,16 +265,16 @@ const JapaneseQuiz = () => {
 
   const renderInputField = (label, field) => (
     <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="block text-sm font-medium mb-1 text-foreground">{label}</label>
       <Input
         value={userAnswers[field]}
         onChange={(e) => handleInputChange(field, e.target.value)}
         className={feedback.isSubmitted ? 
-          (userAnswers[field] === feedback.correctAnswers?.[field] ? 'border-green-500' : 'border-red-500') 
+          (userAnswers[field] === feedback.correctAnswers?.[field] ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') 
           : ''}
       />
       {feedback.isSubmitted && userAnswers[field] !== feedback.correctAnswers?.[field] && (
-        <div className="text-sm text-red-500 mt-1">
+        <div className="text-sm text-red-400 mt-1">
           Correct: {feedback.correctAnswers[field]}
         </div>
       )}
@@ -282,29 +282,29 @@ const JapaneseQuiz = () => {
   );
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto bg-card">
       <CardHeader className="text-center">
         {loading ? (
           <div>Loading word data...</div>
         ) : error ? (
-          <div className="text-red-500">{error}</div>
+          <div className="text-red-400">{error}</div>
         ) : currentWord ? (
           <>
-            <h2 className="text-2xl font-bold">Japanese {currentWord.type === 'verb' ? 'Verb' : 'Adjective'} Quiz</h2>
-            <div className="text-lg">
+            <h2 className="text-2xl font-bold text-foreground">Japanese {currentWord.type === 'verb' ? 'Verb' : 'Adjective'} Quiz</h2>
+            <div className="text-lg text-foreground">
               <ruby>
                 {currentWord.kanji}
                 <rt>{currentWord.hiragana}</rt>
               </ruby>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               {currentWord.english}
               <div className="text-xs mt-1">
                 Type: {currentWord.type}
                 {currentWord.group && ` (${currentWord.group}-group)`}
               </div>
             </div>
-            <div className="mt-2">
+            <div className="mt-2 text-foreground">
               Score: {score.correct}/{score.total}
             </div>
           </>
@@ -314,7 +314,7 @@ const JapaneseQuiz = () => {
       {!loading && !error && currentWord && (
         <CardContent>
           <Tabs defaultValue="present" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 bg-muted">
               <TabsTrigger value="present">Present Tense</TabsTrigger>
               <TabsTrigger value="past">Past Tense</TabsTrigger>
             </TabsList>
@@ -337,7 +337,7 @@ const JapaneseQuiz = () => {
           <Button 
             onClick={checkAnswers}
             disabled={feedback.isSubmitted}
-            className="w-full mt-4"
+            className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Submit
           </Button>
