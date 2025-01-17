@@ -10,16 +10,16 @@ CREATE TYPE verb_group AS ENUM ('ru', 'u', 'irregular');
 -- Words table
 CREATE TABLE words (
     id SERIAL PRIMARY KEY,
-    kanji TEXT,  -- Nullable because some words are kana-only
+    kanji TEXT,
     hiragana TEXT NOT NULL,
     romaji TEXT NOT NULL,
     type word_type NOT NULL,
-    group_type verb_group,  -- Only for verbs
-    english TEXT[] NOT NULL,  -- Array of possible meanings
+    group_type verb_group,
+    english TEXT[] NOT NULL,
     jlpt_level jlpt_level NOT NULL,
-    commonness INTEGER,  -- Lower number = more common
-    examples TEXT[],  -- Array of example sentences
-    tags TEXT[],  -- Array of tags (e.g., 'daily-life', 'business', 'formal')
+    commonness INTEGER,
+    tags TEXT[] DEFAULT ARRAY['general'],
+    origin_language TEXT,  -- Added this
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -89,6 +89,9 @@ CREATE TABLE word_relationships (
 CREATE INDEX idx_words_jlpt ON words(jlpt_level);
 CREATE INDEX idx_words_type ON words(type);
 CREATE INDEX idx_words_commonness ON words(commonness);
+CREATE INDEX idx_words_tags ON words USING gin(tags);
+CREATE INDEX idx_words_type ON words(type);
+CREATE INDEX idx_words_origin ON words(origin_language);
 CREATE INDEX idx_conjugations_word_id ON conjugations(word_id);
 CREATE INDEX idx_examples_word_id ON example_sentences(word_id);
 CREATE INDEX idx_word_relationships_word_id1 ON word_relationships(word_id1);

@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  process:
+    image: node:20-slim
+    volumes:
+      - .:/app
+    working_dir: /app    # Changed back to /app instead of /app/scripts
+    command: >
+      bash -c "
+        apt-get update && apt-get install -y git &&
+        cd scripts &&
+        npm install &&
+        cd .. &&
+        node scripts/process-jmdict.js
+      "
