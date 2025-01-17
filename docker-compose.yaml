@@ -8,4 +8,29 @@ services:
       - .:/app
       - /app/node_modules
     environment:
+      - DATABASE_URL=postgres://user:password@db:5432/japanese_quiz
       - NODE_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=japanese_quiz
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d japanese_quiz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+volumes:
+  postgres_data:

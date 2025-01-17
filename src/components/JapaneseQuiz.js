@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { loadDictionary } from '@/utils/dictionary';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -97,69 +98,15 @@ const JapaneseQuiz = () => {
   useEffect(() => {
     const loadWords = async () => {
       try {
-        const response = await fetch('/words.csv');
-        if (!response.ok) {
-          throw new Error('Failed to fetch words.csv');
-        }
-        const csvText = await response.text();
-
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            const parsedWords = {};
-
-            results.data.forEach(row => {
-              parsedWords[row.romaji] = createVerb({
-                type: row.type,
-                group: row.group,
-                english: row.english,
-                kanji: row.kanji,
-                hiragana: row.hiragana,
-                root: row.root,
-                romaji: row.romaji,
-                te: row.te,
-                ta: row.ta,
-                tai: row.tai,
-                conditional: row.conditional,
-                nonPastPositive: row.non_past_plain_pos,
-                nonPastNegative: row.non_past_plain_neg,
-                politePositive: row.non_past_polite_pos,
-                politeNegative: row.non_past_polite_neg,
-                pastPositive: row.past_plain_pos,
-                pastNegative: row.past_plain_neg,
-                politePastPositive: row.past_polite_pos,
-                politePastNegative: row.past_polite_neg,
-                potentialPlainPositive: row.potential_plain_pos,
-                potentialPlainNegative: row.potential_plain_neg,
-                potentialPolitePositive: row.potential_polite_pos,
-                potentialPoliteNegative: row.potential_polite_neg,
-                potentialPastPositive: row.potential_past_pos,
-                potentialPastNegative: row.potential_past_neg,
-                volitionalPlainPositive: row.volitional_plain_pos,
-                volitionalPlainNegative: row.volitional_plain_neg,
-                volitionalPolitePositive: row.volitional_polite_pos,
-                volitionalPoliteNegative: row.volitional_polite_neg
-              });
-            });
-
-            setWords(parsedWords);
-            setLoading(false);
-            // Select initial random word
-            const wordsList = Object.values(parsedWords);
-            if (wordsList.length > 0) {
-              setCurrentWord(wordsList[Math.floor(Math.random() * wordsList.length)]);
-            }
-          },
-          error: (error) => {
-            console.error('Error parsing CSV:', error);
-            setError('Failed to parse word data');
-            setLoading(false);
-          }
-        });
+        setLoading(true);
+        const dictionaryWords = await loadDictionary();
+        console.log('Loaded dictionary words:', dictionaryWords);
+        // For now, just store the words in state
+        setWords(dictionaryWords);
+        setLoading(false);
       } catch (error) {
-        console.error('Error loading CSV:', error);
-        setError('Failed to load word data');
+        console.error('Error loading dictionary:', error);
+        setError('Failed to load dictionary data');
         setLoading(false);
       }
     };
