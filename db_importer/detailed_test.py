@@ -17,12 +17,13 @@ class FileOutput:
         with open(self.filename, 'a', encoding='utf-8') as f:
             f.write(str(content) + "\n")
 
-def print_section(output, title, content):
+def print_section(output, title, content=""):
     """Helper function to print sections clearly"""
     output.write("\n" + "="*80)
     output.write(f"{title}")
     output.write("="*80)
-    output.write(str(content))
+    if content:
+        output.write(str(content))
 
 def test_detailed_processing(xml_file: str, num_entries: int = 2):
     """Test XML processing with detailed output for verification."""
@@ -59,7 +60,7 @@ def test_detailed_processing(xml_file: str, num_entries: int = 2):
         entries = root.findall('entry')[:num_entries]
         
         for i, entry in enumerate(entries, 1):
-            print_section(output, f"Entry {i}", "")
+            print_section(output, f"Entry {i}")
             
             # Basic Entry Info
             ent_seq = entry.find('ent_seq').text
@@ -127,16 +128,17 @@ def test_detailed_processing(xml_file: str, num_entries: int = 2):
             processed_entry = processor._process_entry(entry)
             output.write("\nProcessed Entry Structure:")
             output.write(pformat(processed_entry, indent=2, width=80))
-            
-            # Generate and show conjugations if applicable
+
+            # Generate and display conjugations if applicable
             pos_list = set()
             for sense in processed_entry['sense_elements']:
-                pos_list.update(sense['pos'])
-            
+                mapped_pos = [processor._map_pos(pos) for pos in sense['pos']]
+                pos_list.update(mapped_pos)
+
             conjugatable_pos = {pos for pos in pos_list 
-                              if any(pos.startswith(p) for p in 
-                                   ['v1', 'v5', 'adj-i', 'adj-na'])}
-            
+                              if pos in ['adj-i', 'adj-na'] or 
+                              pos.startswith(('v1', 'v5'))}
+
             if conjugatable_pos:
                 output.write("\nConjugations:")
                 base_form = (processed_entry['kanji_elements'][0]['kanji'] 
@@ -146,13 +148,16 @@ def test_detailed_processing(xml_file: str, num_entries: int = 2):
                 for pos in conjugatable_pos:
                     output.write(f"\n  Conjugations for {base_form} ({pos}):")
                     conjugations = processor._generate_conjugations(base_form, pos)
-                    for conj in conjugations:
-                        output.write(f"\n    Type: {conj.get('conjugation_type', 'N/A')}")
-                        output.write(f"    Form: {conj.get('form', 'N/A')}")
-                        output.write(f"    Kanji: {conj.get('kanji_form', 'N/A')}")
-                        output.write(f"    Hiragana: {conj.get('hiragana', 'N/A')}")
-                        output.write(f"    Katakana: {conj.get('katakana', 'N/A')}")
-                        output.write(f"    Romaji: {conj.get('romaji', 'N/A')}")
+                    if conjugations:
+                        for conj in conjugations:
+                            output.write(f"\n    Type: {conj['conjugation_type']}")
+                            output.write(f"    Form: {conj['form']}")
+                            output.write(f"    Kanji: {conj['kanji_form']}")
+                            output.write(f"    Hiragana: {conj['hiragana']}")
+                            output.write(f"    Katakana: {conj['katakana']}")
+                            output.write(f"    Romaji: {conj['romaji']}")
+                    else:
+                        output.write("    No conjugations generated")
             
             # Different writing systems for each reading
             output.write("\nWriting Systems for Readings:")
@@ -173,4 +178,4 @@ def test_detailed_processing(xml_file: str, num_entries: int = 2):
         logging.info(f"Results written to {output.filename}")
 
 if __name__ == '__main__':
-    test_detailed_processing('JMdict_e.xml', num_entries=50000)
+    test_detailed_processing('JMdict_e.xml', num_entries=100)

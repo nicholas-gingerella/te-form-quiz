@@ -41,6 +41,259 @@ class JMdictProcessor:
         )
         self.cur = self.conn.cursor()
 
+    def _strip_entity_refs(self, text: str) -> str:
+        """Strip XML entity references from text."""
+        if text and text.startswith('&') and text.endswith(';'):
+            return text[1:-1]
+        return text
+
+    def _map_pos(self, pos: str) -> str:
+        """Map full text POS to conjugation rule keys."""
+        logging.debug(f"Mapping POS: {pos}")
+        pos_mapping = {
+            'adjective (keiyoushi)': 'adj-i',
+            'adjectival nouns or quasi-adjectives (keiyodoshi)': 'adj-na',
+            'adj-i': 'adj-i',  # Direct mappings for already-correct formats
+            'adj-na': 'adj-na'
+        }
+        mapped = pos_mapping.get(pos, pos)
+        logging.debug(f"Mapped {pos} to {mapped}")
+        return mapped
+
+    def _process_entry(self, entry: ET.Element) -> Dict:
+        """Process a single entry from the XML."""
+        ent_seq = int(entry.find('ent_seq').text)
+        logging.debug(f"Processing entry {ent_seq}")
+        
+        # Process kanji elements
+        kanji_elements = []
+        for k_ele in entry.findall('k_ele'):
+            kanji = {
+                'kanji': k_ele.find('keb').text,
+                'info': [self._strip_entity_refs(e.text) for e in k_ele.findall('ke_inf')],
+                'priority': [e.text for e in k_ele.findall('ke_pri')]
+            }
+            kanji_elements.append(kanji)
+        
+        # Process reading elements
+        reading_elements = []
+        for r_ele in entry.findall('r_ele'):
+            reading = {
+                'reading': r_ele.find('reb').text,
+                'no_kanji': bool(r_ele.find('re_nokanji')),
+                'restrictions': [e.text for e in r_ele.findall('re_restr')],
+                'info': [self._strip_entity_refs(e.text) for e in r_ele.findall('re_inf')],
+                'priority': [e.text for e in r_ele.findall('re_pri')]
+            }
+            reading_elements.append(reading)
+        
+        # Process sense elements
+        sense_elements = []
+        for sense in entry.findall('sense'):
+            # Extract and process POS with detailed logging
+            pos_elements = sense.findall('pos')
+            pos_values = []
+            for pos in pos_elements:
+                raw_pos = pos.text
+                logging.debug(f"Raw POS value: {raw_pos}")
+                pos_values.append(raw_pos)
+            
+            sense_data = {
+                'pos': pos_values,
+                'field': [self._strip_entity_refs(field.text) for field in sense.findall('field')],
+                'misc': [self._strip_entity_refs(misc.text) for misc in sense.findall('misc')],
+                'glosses': []
+            }
+            
+            for gloss in sense.findall('gloss'):
+                gloss_data = {
+                    'text': gloss.text,
+                    'lang': gloss.get('{http://www.w3.org/XML/1998/namespace}lang', 'eng'),
+                    'type': gloss.get('g_type')
+                }
+                sense_data['glosses'].append(gloss_data)
+            
+            sense_elements.append(sense_data)
+        
+        return {
+            'ent_seq': ent_seq,
+            'kanji_elements': kanji_elements,
+            'reading_elements': reading_elements,
+            'sense_elements': sense_elements
+        }
+
+    def _process_conjugations(self, entry_id: int, entry: Dict):
+        """Generate and insert conjugations for applicable words."""
+        # Get parts of speech from all senses
+        pos_list = set()
+        for sense in entry['sense_elements']:
+            original_pos = sense['pos']
+            logging.info(f"Original POS: {original_pos}")
+            mapped_pos = [self._map_pos(pos) for pos in original_pos]
+            logging.info(f"Mapped POS: {mapped_pos}")
+            pos_list.update(mapped_pos)
+        
+        # Filter for conjugatable parts of speech
+        conjugatable_pos = {pos for pos in pos_list 
+                          if pos in ['adj-i', 'adj-na'] or 
+                          pos.startswith(('v1', 'v5'))}
+        
+        if not conjugatable_pos:
+            logging.debug(f"No conjugatable POS found in: {pos_list}")
+            return
+        
+        logging.info(f"Found conjugatable POS: {conjugatable_pos}")
+        
+        # Get base form (use first kanji if available, otherwise first reading)
+        base_form = (entry['kanji_elements'][0]['kanji'] 
+                    if entry['kanji_elements'] 
+                    else entry['reading_elements'][0]['reading'])
+        
+        # Generate conjugations for each applicable part of speech
+        for pos in conjugatable_pos:
+            logging.info(f"Generating conjugations for {base_form} ({pos})")
+            conjugations = self._generate_conjugations(base_form, pos)
+            if conjugations:
+                logging.info(f"Generated {len(conjugations)} conjugations")
+                for conj in conjugations:
+                    logging.debug(f"Conjugation: {conj}")
+                self._insert_conjugations(entry_id, conjugations)
+            else:
+                logging.warning(f"No conjugations generated for {base_form} ({pos})")
+
+    def _generate_conjugations(self, word: str, pos: str) -> List[Dict]:
+        """Generate all conjugations for a word based on its part of speech."""
+        results = []
+        logging.info(f"Generating conjugations for word: {word}, POS: {pos}")
+        
+        # Get appropriate rule set
+        rule_set = None
+        if pos == 'adj-i':
+            logging.info("Found i-adjective, getting rule set")
+            rule_set = self.conjugation_rules['adjective_rules']['i_adjectives']['adj-i']
+        elif pos == 'adj-na':
+            logging.info("Found na-adjective, getting rule set")
+            rule_set = self.conjugation_rules['adjective_rules']['na_adjectives']['adj-na']
+        elif pos.startswith('v5'):
+            logging.info("Found godan verb, getting rule set")
+            rule_set = self.conjugation_rules['verb_rules']['godan'].get(pos)
+        elif pos.startswith('v1'):
+            logging.info("Found ichidan verb, getting rule set")
+            rule_set = self.conjugation_rules['verb_rules']['ichidan'].get(pos)
+        
+        if not rule_set:
+            logging.warning(f"No conjugation rules found for POS: {pos}")
+            return results
+        
+        conjugations = rule_set.get('conjugations', {})
+        logging.info(f"Found rule set with conjugations: {list(conjugations.keys())}")
+        
+        # Apply conjugation patterns
+        for conj_type, patterns in conjugations.items():
+            logging.debug(f"Processing conjugation type: {conj_type}")
+            logging.debug(f"Pattern structure: {patterns}")
+            
+            # Case 1: Pattern is a dictionary with nested forms (e.g., plain/polite)
+            if isinstance(patterns, dict) and any(isinstance(v, dict) for v in patterns.values()):
+                for form, pattern_data in patterns.items():
+                    if isinstance(pattern_data, dict) and 'pattern' in pattern_data:
+                        pattern = pattern_data['pattern']
+                        conjugated = self._apply_pattern(word, pattern, pos)
+                        readings = self._get_readings(conjugated)
+                        
+                        results.append({
+                            'conjugation_type': conj_type,
+                            'form': form,
+                            'kanji_form': conjugated,
+                            **readings
+                        })
+            
+            # Case 2: Pattern is a dictionary with pattern & example (e.g., te_form)
+            elif isinstance(patterns, dict) and 'pattern' in patterns:
+                pattern = patterns['pattern']
+                conjugated = self._apply_pattern(word, pattern, pos)
+                readings = self._get_readings(conjugated)
+                
+                results.append({
+                    'conjugation_type': conj_type,
+                    'form': 'plain',
+                    'kanji_form': conjugated,
+                    **readings
+                })
+            
+            # Case 3: Pattern is a direct string
+            elif isinstance(patterns, str):
+                conjugated = self._apply_pattern(word, patterns, pos)
+                readings = self._get_readings(conjugated)
+                
+                results.append({
+                    'conjugation_type': conj_type,
+                    'form': 'plain',
+                    'kanji_form': conjugated,
+                    **readings
+                })
+            
+            logging.debug(f"Generated results for {conj_type}: {results[-1] if results else 'none'}")
+        
+        return results
+
+    def _apply_pattern(self, word: str, pattern: str, pos: str) -> str:
+        """Apply a conjugation pattern to a word."""
+        logging.debug(f"Applying pattern '{pattern}' to word '{word}' with POS '{pos}'")
+        if pos == 'adj-i':
+            # Remove final い and append new ending
+            if word.endswith('い'):
+                result = word[:-1] + pattern
+                logging.debug(f"Removed い and appended pattern: {result}")
+                return result
+            logging.debug(f"Word doesn't end in い, appending pattern directly: {word + pattern}")
+            return word + pattern
+        elif pos == 'adj-na':
+            # Na-adjectives just append the pattern
+            result = word + pattern
+            logging.debug(f"Na-adjective: appended pattern directly: {result}")
+            return result
+        elif pos.startswith('v'):
+            # For verbs, remove the final character and append the pattern
+            if len(word) > 1:
+                result = word[:-1] + pattern
+                logging.debug(f"Verb: removed last character and appended pattern: {result}")
+                return result
+        logging.debug(f"No specific pattern handling, appending directly: {word + pattern}")
+        return word + pattern
+
+    def _get_readings(self, word: str) -> Dict[str, str]:
+        """Generate different readings of a word."""
+        result = self.kakasi.convert(word)
+        
+        return {
+            'hiragana': result[0]['hira'],
+            'katakana': result[0]['kana'],
+            'romaji': result[0]['passport']
+        }
+
+    def _insert_conjugations(self, entry_id: int, conjugations: List[Dict]):
+        """Insert conjugations for an entry."""
+        if not conjugations:
+            return
+            
+        execute_values(
+            self.cur,
+            """
+            INSERT INTO conjugations 
+            (entry_id, kanji_form, hiragana_reading, katakana_reading, romaji_reading)
+            VALUES %s
+            """,
+            [(entry_id, c['kanji_form'], c['hiragana'], c['katakana'], c['romaji']) 
+             for c in conjugations]
+        )
+
+    def close(self):
+        """Close database connection."""
+        self.cur.close()
+        self.conn.close()
+
+
     def process_file(self, xml_file_path: str, batch_size: int = 1000):
         """Process the JMdict XML file in batches."""
         logging.info(f"Starting to process {xml_file_path}")
@@ -69,58 +322,6 @@ class JMdictProcessor:
         
         logging.info(f"Completed processing {entries_processed} entries")
 
-    def _process_entry(self, entry: ET.Element) -> Dict:
-        """Process a single entry from the XML."""
-        ent_seq = int(entry.find('ent_seq').text)
-        
-        # Process kanji elements
-        kanji_elements = []
-        for k_ele in entry.findall('k_ele'):
-            kanji = {
-                'kanji': k_ele.find('keb').text,
-                'info': [e.text for e in k_ele.findall('ke_inf')],
-                'priority': [e.text for e in k_ele.findall('ke_pri')]
-            }
-            kanji_elements.append(kanji)
-        
-        # Process reading elements
-        reading_elements = []
-        for r_ele in entry.findall('r_ele'):
-            reading = {
-                'reading': r_ele.find('reb').text,
-                'no_kanji': bool(r_ele.find('re_nokanji')),
-                'restrictions': [e.text for e in r_ele.findall('re_restr')],
-                'info': [e.text for e in r_ele.findall('re_inf')],
-                'priority': [e.text for e in r_ele.findall('re_pri')]
-            }
-            reading_elements.append(reading)
-        
-        # Process sense elements
-        sense_elements = []
-        for sense in entry.findall('sense'):
-            sense_data = {
-                'pos': [pos.text for pos in sense.findall('pos')],
-                'field': [field.text for field in sense.findall('field')],
-                'misc': [misc.text for misc in sense.findall('misc')],
-                'glosses': []
-            }
-            
-            for gloss in sense.findall('gloss'):
-                gloss_data = {
-                    'text': gloss.text,
-                    'lang': gloss.get('{http://www.w3.org/XML/1998/namespace}lang', 'eng'),
-                    'type': gloss.get('g_type')
-                }
-                sense_data['glosses'].append(gloss_data)
-            
-            sense_elements.append(sense_data)
-        
-        return {
-            'ent_seq': ent_seq,
-            'kanji_elements': kanji_elements,
-            'reading_elements': reading_elements,
-            'sense_elements': sense_elements
-        }
 
     def _insert_batch(self, entries: List[Dict]):
         """Insert a batch of entries into the database."""
@@ -266,103 +467,6 @@ class JMdictProcessor:
                     [(sense_id, g['text'], g['lang'], g['type']) 
                      for g in sense['glosses']]
                 )
-
-    def _process_conjugations(self, entry_id: int, entry: Dict):
-        """Generate and insert conjugations for applicable words."""
-        # Get parts of speech from all senses
-        pos_list = set()
-        for sense in entry['sense_elements']:
-            pos_list.update(sense['pos'])
-        
-        # Filter for conjugatable parts of speech
-        conjugatable_pos = {pos for pos in pos_list 
-                          if any(pos.startswith(p) for p in 
-                               ['v1', 'v5', 'adj-i', 'adj-na'])}
-        
-        if not conjugatable_pos:
-            return
-        
-        # Get base form (use first kanji if available, otherwise first reading)
-        base_form = (entry['kanji_elements'][0]['kanji'] 
-                    if entry['kanji_elements'] 
-                    else entry['reading_elements'][0]['reading'])
-        
-        # Generate conjugations for each applicable part of speech
-        for pos in conjugatable_pos:
-            conjugations = self._generate_conjugations(base_form, pos)
-            self._insert_conjugations(entry_id, conjugations)
-
-    def _generate_conjugations(self, word: str, pos: str) -> List[Dict]:
-        """Generate all conjugations for a word based on its part of speech."""
-        results = []
-        
-        # Get appropriate rule set
-        if pos.startswith('v5'):
-            rule_set = self.conjugation_rules['verb_rules']['godan'][pos]
-        elif pos.startswith('v1'):
-            rule_set = self.conjugation_rules['verb_rules']['ichidan'][pos]
-        elif pos == 'adj-i':
-            rule_set = self.conjugation_rules['adjective_rules']['i_adjectives'][pos]
-        elif pos == 'adj-na':
-            rule_set = self.conjugation_rules['adjective_rules']['na_adjectives'][pos]
-        else:
-            return results
-        
-        # Apply conjugation patterns
-        for conj_type, patterns in rule_set['conjugations'].items():
-            for form, pattern in patterns.items():
-                conjugated = self._apply_pattern(word, pattern['pattern'])
-                readings = self._get_readings(conjugated)
-                
-                results.append({
-                    'conjugation_type': conj_type,
-                    'form': form,
-                    'kanji_form': conjugated,
-                    **readings
-                })
-        
-        return results
-
-    def _apply_pattern(self, word: str, pattern: str) -> str:
-        """Apply a conjugation pattern to a word."""
-        # Basic implementation - will need refinement
-        if word.endswith('る'):
-            return word[:-1] + pattern
-        if word.endswith('う'):
-            return word[:-1] + pattern
-        # Add more ending patterns as needed
-        return word + pattern
-
-    def _get_readings(self, word: str) -> Dict[str, str]:
-        """Generate different readings of a word."""
-        result = self.kakasi.convert(word)
-        
-        return {
-            'hiragana': result[0]['hira'],
-            'katakana': result[0]['kana'],
-            'romaji': result[0]['passport']
-        }
-
-    def _insert_conjugations(self, entry_id: int, conjugations: List[Dict]):
-        """Insert conjugations for an entry."""
-        if not conjugations:
-            return
-            
-        execute_values(
-            self.cur,
-            """
-            INSERT INTO conjugations 
-            (entry_id, kanji_form, hiragana_reading, katakana_reading, romaji_reading)
-            VALUES %s
-            """,
-            [(entry_id, c['kanji_form'], c['hiragana'], c['katakana'], c['romaji']) 
-             for c in conjugations]
-        )
-
-    def close(self):
-        """Close database connection."""
-        self.cur.close()
-        self.conn.close()
 
 def main():
     # Configuration
