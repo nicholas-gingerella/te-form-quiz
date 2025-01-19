@@ -54,7 +54,17 @@ class JMdictProcessor:
             'adjective (keiyoushi)': 'adj-i',
             'adjectival nouns or quasi-adjectives (keiyodoshi)': 'adj-na',
             'adj-i': 'adj-i',  # Direct mappings for already-correct formats
-            'adj-na': 'adj-na'
+            'adj-na': 'adj-na',
+            "Godan verb with 'u' ending": 'v5u',
+            "Godan verb with 'ku' ending": 'v5k',
+            "Godan verb with 'gu' ending": 'v5g',
+            "Godan verb with 'su' ending": 'v5s',
+            "Godan verb with 'tsu' ending": 'v5t',
+            "Godan verb with 'nu' ending": 'v5n',
+            "Godan verb with 'bu' ending": 'v5b',
+            "Godan verb with 'mu' ending": 'v5m',
+            "Godan verb with 'ru' ending": 'v5r',
+            'Ichidan verb': 'v1'
         }
         mapped = pos_mapping.get(pos, pos)
         logging.debug(f"Mapped {pos} to {mapped}")
@@ -128,9 +138,9 @@ class JMdictProcessor:
         pos_list = set()
         for sense in entry['sense_elements']:
             original_pos = sense['pos']
-            logging.info(f"Original POS: {original_pos}")
+            logging.info(f"Original POS values: {original_pos}")
             mapped_pos = [self._map_pos(pos) for pos in original_pos]
-            logging.info(f"Mapped POS: {mapped_pos}")
+            logging.info(f"Mapped POS values: {mapped_pos}")
             pos_list.update(mapped_pos)
         
         # Filter for conjugatable parts of speech
@@ -190,77 +200,127 @@ class JMdictProcessor:
         
         # Apply conjugation patterns
         for conj_type, patterns in conjugations.items():
-            logging.debug(f"Processing conjugation type: {conj_type}")
-            logging.debug(f"Pattern structure: {patterns}")
+            logging.info(f"Processing conjugation type: {conj_type}")
+            logging.info(f"Pattern structure: {patterns}")
             
-            # Case 1: Pattern is a dictionary with nested forms (e.g., plain/polite)
-            if isinstance(patterns, dict) and any(isinstance(v, dict) for v in patterns.values()):
-                for form, pattern_data in patterns.items():
-                    if isinstance(pattern_data, dict) and 'pattern' in pattern_data:
-                        pattern = pattern_data['pattern']
-                        conjugated = self._apply_pattern(word, pattern, pos)
-                        readings = self._get_readings(conjugated)
-                        
+            try:
+                # Case 1: Pattern is a dictionary with nested forms (e.g., plain/polite)
+                if isinstance(patterns, dict) and any(isinstance(v, dict) for v in patterns.values()):
+                    logging.info("Processing Case 1: nested forms")
+                    for form, pattern_data in patterns.items():
+                        logging.info(f"Processing form: {form}, pattern_data: {pattern_data}")
+                        if isinstance(pattern_data, dict) and 'pattern' in pattern_data:
+                            pattern = pattern_data['pattern']
+                            logging.info(f"Applying pattern: {pattern}")
+                            conjugated_forms = self._apply_pattern(word, pattern, pos)
+                            if isinstance(conjugated_forms, dict):
+                                results.append({
+                                    'conjugation_type': conj_type,
+                                    'form': form,
+                                    'kanji_form': conjugated_forms.get('kanji_form', ''),
+                                    'hiragana': conjugated_forms.get('hiragana', ''),
+                                    'katakana': conjugated_forms.get('katakana', ''),
+                                    'romaji': conjugated_forms.get('romaji', '')
+                                })
+                
+                # Case 2: Pattern is a dictionary with pattern & example (e.g., te_form)
+                elif isinstance(patterns, dict) and 'pattern' in patterns:
+                    logging.info("Processing Case 2: pattern with example")
+                    conjugated_forms = self._apply_pattern(word, patterns['pattern'], pos)
+                    if isinstance(conjugated_forms, dict):
                         results.append({
                             'conjugation_type': conj_type,
-                            'form': form,
-                            'kanji_form': conjugated,
-                            **readings
+                            'form': 'plain',
+                            'kanji_form': conjugated_forms.get('kanji_form', ''),
+                            'hiragana': conjugated_forms.get('hiragana', ''),
+                            'katakana': conjugated_forms.get('katakana', ''),
+                            'romaji': conjugated_forms.get('romaji', '')
                         })
-            
-            # Case 2: Pattern is a dictionary with pattern & example (e.g., te_form)
-            elif isinstance(patterns, dict) and 'pattern' in patterns:
-                pattern = patterns['pattern']
-                conjugated = self._apply_pattern(word, pattern, pos)
-                readings = self._get_readings(conjugated)
                 
-                results.append({
-                    'conjugation_type': conj_type,
-                    'form': 'plain',
-                    'kanji_form': conjugated,
-                    **readings
-                })
-            
-            # Case 3: Pattern is a direct string
-            elif isinstance(patterns, str):
-                conjugated = self._apply_pattern(word, patterns, pos)
-                readings = self._get_readings(conjugated)
+                # Case 3: Pattern is a direct string
+                elif isinstance(patterns, str):
+                    logging.info("Processing Case 3: direct string pattern")
+                    conjugated_forms = self._apply_pattern(word, patterns, pos)
+                    if isinstance(conjugated_forms, dict):
+                        results.append({
+                            'conjugation_type': conj_type,
+                            'form': 'plain',
+                            'kanji_form': conjugated_forms.get('kanji_form', ''),
+                            'hiragana': conjugated_forms.get('hiragana', ''),
+                            'katakana': conjugated_forms.get('katakana', ''),
+                            'romaji': conjugated_forms.get('romaji', '')
+                        })
+                else:
+                    logging.warning(f"Unhandled pattern type: {type(patterns)}")
                 
-                results.append({
-                    'conjugation_type': conj_type,
-                    'form': 'plain',
-                    'kanji_form': conjugated,
-                    **readings
-                })
+            except Exception as e:
+                logging.error(f"Error processing conjugation {conj_type}: {str(e)}")
+                continue
             
-            logging.debug(f"Generated results for {conj_type}: {results[-1] if results else 'none'}")
+            if results:
+                logging.info(f"Generated result for {conj_type}: {results[-1]}")
         
+        logging.info(f"Total conjugations generated: {len(results)}")
         return results
 
-    def _apply_pattern(self, word: str, pattern: str, pos: str) -> str:
-        """Apply a conjugation pattern to a word."""
-        logging.debug(f"Applying pattern '{pattern}' to word '{word}' with POS '{pos}'")
-        if pos == 'adj-i':
-            # Remove final い and append new ending
-            if word.endswith('い'):
-                result = word[:-1] + pattern
-                logging.debug(f"Removed い and appended pattern: {result}")
-                return result
-            logging.debug(f"Word doesn't end in い, appending pattern directly: {word + pattern}")
-            return word + pattern
-        elif pos == 'adj-na':
-            # Na-adjectives just append the pattern
-            result = word + pattern
-            logging.debug(f"Na-adjective: appended pattern directly: {result}")
-            return result
-        elif pos.startswith('v'):
-            # For verbs, remove the final character and append the pattern
-            if len(word) > 1:
-                result = word[:-1] + pattern
-                logging.debug(f"Verb: removed last character and appended pattern: {result}")
-                return result
-        logging.debug(f"No specific pattern handling, appending directly: {word + pattern}")
-        return word + pattern
+    def _apply_pattern(self, word: str, pattern: str, pos: str) -> Dict[str, str]:
+        """Apply a conjugation pattern to a word and return all writing systems."""
+        logging.info(f"Applying pattern '{pattern}' to word '{word}' with POS '{pos}'")
+        
+        # First, get the readings for the base word
+        base_readings = self._get_readings(word)
+        logging.info(f"Base readings: {base_readings}")
+        
+        # Then get the readings for the pattern
+        pattern_readings = self._get_readings(pattern)
+        logging.info(f"Pattern readings: {pattern_readings}")
+        
+        results = {}
+        
+        try:
+            if pos == 'adj-i':
+                # Remove final い and append new ending for all forms
+                if word.endswith('い'):
+                    results['kanji_form'] = word[:-1] + pattern
+                    results['hiragana'] = base_readings['hiragana'][:-1] + pattern_readings['hiragana']
+                    results['katakana'] = base_readings['katakana'][:-1] + pattern_readings['katakana']
+                    results['romaji'] = base_readings['romaji'][:-1] + pattern_readings['romaji']
+                else:
+                    results['kanji_form'] = word + pattern
+                    results['hiragana'] = base_readings['hiragana'] + pattern_readings['hiragana']
+                    results['katakana'] = base_readings['katakana'] + pattern_readings['katakana']
+                    results['romaji'] = base_readings['romaji'] + pattern_readings['romaji']
+            elif pos == 'adj-na':
+                # Na-adjectives just append the pattern
+                results['kanji_form'] = word + pattern
+                results['hiragana'] = base_readings['hiragana'] + pattern_readings['hiragana']
+                results['katakana'] = base_readings['katakana'] + pattern_readings['katakana']
+                results['romaji'] = base_readings['romaji'] + pattern_readings['romaji']
+            elif pos.startswith('v'):
+                # For verbs, remove the final character and append the pattern
+                if len(word) > 1:
+                    results['kanji_form'] = word[:-1] + pattern
+                    results['hiragana'] = base_readings['hiragana'][:-1] + pattern_readings['hiragana']
+                    results['katakana'] = base_readings['katakana'][:-1] + pattern_readings['katakana']
+                    results['romaji'] = base_readings['romaji'][:-1] + pattern_readings['romaji']
+                else:
+                    results['kanji_form'] = word + pattern
+                    results['hiragana'] = base_readings['hiragana'] + pattern_readings['hiragana']
+                    results['katakana'] = base_readings['katakana'] + pattern_readings['katakana']
+                    results['romaji'] = base_readings['romaji'] + pattern_readings['romaji']
+            
+            logging.info(f"Generated conjugated forms: {results}")
+            return results
+            
+        except Exception as e:
+            logging.error(f"Error in _apply_pattern: {str(e)}")
+            # Return a default structure in case of error
+            return {
+                'kanji_form': word,
+                'hiragana': base_readings['hiragana'],
+                'katakana': base_readings['katakana'],
+                'romaji': base_readings['romaji']
+            }
 
     def _get_readings(self, word: str) -> Dict[str, str]:
         """Generate different readings of a word."""

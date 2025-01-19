@@ -25,22 +25,43 @@ def print_section(output, title, content=""):
     if content:
         output.write(str(content))
 
+def setup_logging(timestamp):
+    """Set up logging configuration."""
+    # Clear any existing handlers
+    logging.getLogger().handlers = []
+    
+    # Create handlers
+    file_handler = logging.FileHandler(f'debug_log_{timestamp}.txt', encoding='utf-8')
+    console_handler = logging.StreamHandler()
+    
+    # Set levels
+    file_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(logging.INFO)
+    
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    
+    # Get root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    
+    # Add handlers
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
 def test_detailed_processing(xml_file: str, num_entries: int = 2):
     """Test XML processing with detailed output for verification."""
     
-    # Create output file with timestamp
+    # Create timestamp for file names
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output = FileOutput(f'jmdict_test_results_{timestamp}.txt')
     
-    # Configure logging to write to both file and console
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(f'jmdict_test_log_{timestamp}.txt', encoding='utf-8'),
-            logging.StreamHandler()
-        ]
-    )
+    # Set up logging
+    setup_logging(timestamp)
+    
+    # Create output file for test results
+    output = FileOutput(f'jmdict_test_results_{timestamp}.txt')
     
     db_config = DatabaseConfig(
         host='localhost',
@@ -128,17 +149,17 @@ def test_detailed_processing(xml_file: str, num_entries: int = 2):
             processed_entry = processor._process_entry(entry)
             output.write("\nProcessed Entry Structure:")
             output.write(pformat(processed_entry, indent=2, width=80))
-
+            
             # Generate and display conjugations if applicable
             pos_list = set()
             for sense in processed_entry['sense_elements']:
                 mapped_pos = [processor._map_pos(pos) for pos in sense['pos']]
                 pos_list.update(mapped_pos)
-
+            
             conjugatable_pos = {pos for pos in pos_list 
                               if pos in ['adj-i', 'adj-na'] or 
                               pos.startswith(('v1', 'v5'))}
-
+            
             if conjugatable_pos:
                 output.write("\nConjugations:")
                 base_form = (processed_entry['kanji_elements'][0]['kanji'] 
@@ -178,4 +199,4 @@ def test_detailed_processing(xml_file: str, num_entries: int = 2):
         logging.info(f"Results written to {output.filename}")
 
 if __name__ == '__main__':
-    test_detailed_processing('JMdict_e.xml', num_entries=100)
+    test_detailed_processing('JMdict_e.xml', num_entries=20000)
