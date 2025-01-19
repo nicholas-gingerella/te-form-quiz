@@ -1,0 +1,511 @@
+# Conjugation rules for Japanese verbs and adjectives
+verb_rules:
+  godan:
+    # u-ending
+    v5u:
+      base_ending: う
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: う
+            example: "買う → 買う"
+          polite: 
+            pattern: います
+            example: "買う → 買います"
+        present_negative:
+          plain: 
+            pattern: わない
+            example: "買う → 買わない"
+          polite: 
+            pattern: いません
+            example: "買う → 買いません"
+        past_positive:
+          plain: 
+            pattern: った
+            example: "買う → 買った"
+          polite: 
+            pattern: いました
+            example: "買う → 買いました"
+        past_negative:
+          plain: 
+            pattern: わなかった
+            example: "買う → 買わなかった"
+          polite: 
+            pattern: いませんでした
+            example: "買う → 買いませんでした"
+        te_form:
+          pattern: って
+          example: "買う → 買って"
+        potential:
+          pattern: える
+          example: "買う → 買える"
+        passive:
+          pattern: われる
+          example: "買う → 買われる"
+        causative:
+          pattern: わせる
+          example: "買う → 買わせる"
+        volitional:
+          plain:
+            pattern: おう
+            example: "買う → 買おう"
+          polite:
+            pattern: いましょう
+            example: "買う → 買いましょう"
+
+    # ku-ending
+    v5k:
+      base_ending: く
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: く
+            example: "書く → 書く"
+          polite: 
+            pattern: きます
+            example: "書く → 書きます"
+        present_negative:
+          plain: 
+            pattern: かない
+            example: "書く → 書かない"
+          polite: 
+            pattern: きません
+            example: "書く → 書きません"
+        past_positive:
+          plain: 
+            pattern: いた
+            example: "書く → 書いた"
+          polite: 
+            pattern: きました
+            example: "書く → 書きました"
+        past_negative:
+          plain: 
+            pattern: かなかった
+            example: "書く → 書かなかった"
+          polite: 
+            pattern: きませんでした
+            example: "書く → 書きませんでした"
+        te_form:
+          pattern: いて
+          example: "書く → 書いて"
+        potential:
+          pattern: ける
+          example: "書く → 書ける"
+        passive:
+          pattern: かれる
+          example: "書く → 書かれる"
+        causative:
+          pattern: かせる
+          example: "書く → 書かせる"
+        volitional:
+          plain:
+            pattern: こう
+            example: "書く → 書こう"
+          polite:
+            pattern: きましょう
+            example: "書く → 書きましょう"
+
+    # gu-ending
+    v5g:
+      base_ending: ぐ
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: ぐ
+            example: "泳ぐ → 泳ぐ"
+          polite: 
+            pattern: ぎます
+            example: "泳ぐ → 泳ぎます"
+        present_negative:
+          plain: 
+            pattern: がない
+            example: "泳ぐ → 泳がない"
+          polite: 
+            pattern: ぎません
+            example: "泳ぐ → 泳ぎません"
+        past_positive:
+          plain: 
+            pattern: いだ
+            example: "泳ぐ → 泳いだ"
+          polite: 
+            pattern: ぎました
+            example: "泳ぐ → 泳ぎました"
+        past_negative:
+          plain: 
+            pattern: がなかった
+            example: "泳ぐ → 泳がなかった"
+          polite: 
+            pattern: ぎませんでした
+            example: "泳ぐ → 泳ぎませんでした"
+        te_form:
+          pattern: いで
+          example: "泳ぐ → 泳いで"
+        potential:
+          pattern: げる
+          example: "泳ぐ → 泳げる"
+        passive:
+          pattern: がれる
+          example: "泳ぐ → 泳がれる"
+        causative:
+          pattern: がせる
+          example: "泳ぐ → 泳がせる"
+        volitional:
+          plain:
+            pattern: ごう
+            example: "泳ぐ → 泳ごう"
+          polite:
+            pattern: ぎましょう
+            example: "泳ぐ → 泳ぎましょう"
+
+    # su-ending
+    v5s:
+      base_ending: す
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: す
+            example: "話す → 話す"
+          polite: 
+            pattern: します
+            example: "話す → 話します"
+        present_negative:
+          plain: 
+            pattern: さない
+            example: "話す → 話さない"
+          polite: 
+            pattern: しません
+            example: "話す → 話しません"
+        past_positive:
+          plain: 
+            pattern: した
+            example: "話す → 話した"
+          polite: 
+            pattern: しました
+            example: "話す → 話しました"
+        past_negative:
+          plain: 
+            pattern: さなかった
+            example: "話す → 話さなかった"
+          polite: 
+            pattern: しませんでした
+            example: "話す → 話しませんでした"
+        te_form:
+          pattern: して
+          example: "話す → 話して"
+        potential:
+          pattern: せる
+          example: "話す → 話せる"
+        passive:
+          pattern: される
+          example: "話す → 話される"
+        causative:
+          pattern: させる
+          example: "話す → 話させる"
+        volitional:
+          plain:
+            pattern: そう
+            example: "話す → 話そう"
+          polite:
+            pattern: しましょう
+            example: "話す → 話しましょう"
+
+    # mu-ending
+    v5m:
+      base_ending: む
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: む
+            example: "読む → 読む"
+          polite: 
+            pattern: みます
+            example: "読む → 読みます"
+        present_negative:
+          plain: 
+            pattern: まない
+            example: "読む → 読まない"
+          polite: 
+            pattern: みません
+            example: "読む → 読みません"
+        past_positive:
+          plain: 
+            pattern: んだ
+            example: "読む → 読んだ"
+          polite: 
+            pattern: みました
+            example: "読む → 読みました"
+        past_negative:
+          plain: 
+            pattern: まなかった
+            example: "読む → 読まなかった"
+          polite: 
+            pattern: みませんでした
+            example: "読む → 読みませんでした"
+        te_form:
+          pattern: んで
+          example: "読む → 読んで"
+        potential:
+          pattern: める
+          example: "読む → 読める"
+        passive:
+          pattern: まれる
+          example: "読む → 読まれる"
+        causative:
+          pattern: ませる
+          example: "読む → 読ませる"
+        volitional:
+          plain:
+            pattern: もう
+            example: "読む → 読もう"
+          polite:
+            pattern: みましょう
+            example: "読む → 読みましょう"
+
+    # bu-ending
+    v5b:
+      base_ending: ぶ
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: ぶ
+            example: "遊ぶ → 遊ぶ"
+          polite: 
+            pattern: びます
+            example: "遊ぶ → 遊びます"
+        present_negative:
+          plain: 
+            pattern: ばない
+            example: "遊ぶ → 遊ばない"
+          polite: 
+            pattern: びません
+            example: "遊ぶ → 遊びません"
+        past_positive:
+          plain: 
+            pattern: んだ
+            example: "遊ぶ → 遊んだ"
+          polite: 
+            pattern: びました
+            example: "遊ぶ → 遊びました"
+        past_negative:
+          plain: 
+            pattern: ばなかった
+            example: "遊ぶ → 遊ばなかった"
+          polite: 
+            pattern: びませんでした
+            example: "遊ぶ → 遊びませんでした"
+        te_form:
+          pattern: んで
+          example: "遊ぶ → 遊んで"
+        potential:
+          pattern: べる
+          example: "遊ぶ → 遊べる"
+        passive:
+          pattern: ばれる
+          example: "遊ぶ → 遊ばれる"
+        causative:
+          pattern: ばせる
+          example: "遊ぶ → 遊ばせる"
+        volitional:
+          plain:
+            pattern: ぼう
+            example: "遊ぶ → 遊ぼう"
+          polite:
+            pattern: びましょう
+            example: "遊ぶ → 遊びましょう"
+
+    # ru-ending
+    v5r:
+      base_ending: る
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: る
+            example: "取る → 取る"
+          polite: 
+            pattern: ります
+            example: "取る → 取ります"
+        present_negative:
+          plain: 
+            pattern: らない
+            example: "取る → 取らない"
+          polite: 
+            pattern: りません
+            example: "取る → 取りません"
+        past_positive:
+          plain: 
+            pattern: った
+            example: "取る → 取った"
+          polite: 
+            pattern: りました
+            example: "取る → 取りました"
+        past_negative:
+          plain: 
+            pattern: らなかった
+            example: "取る → 取らなかった"
+          polite: 
+            pattern: りませんでした
+            example: "取る → 取りませんでした"
+        te_form:
+          pattern: って
+          example: "取る → 取って"
+        potential:
+          pattern: れる
+          example: "取る → 取れる"
+        passive:
+          pattern: られる
+          example: "取る → 取られる"
+        causative:
+          pattern: らせる
+          example: "取る → 取らせる"
+        volitional:
+          plain:
+            pattern: ろう
+            example: "取る → 取ろう"
+          polite:
+            pattern: りましょう
+            example: "取る → 取りましょう"
+
+  ichidan:
+    v1:
+      base_ending: る
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: る
+            example: "食べる → 食べる"
+          polite: 
+            pattern: ます
+            example: "食べる → 食べます"
+        present_negative:
+          plain: 
+            pattern: ない
+            example: "食べる → 食べない"
+          polite: 
+            pattern: ません
+            example: "食べる → 食べません"
+        past_positive:
+          plain: 
+            pattern: た
+            example: "食べる → 食べた"
+          polite: 
+            pattern: ました
+            example: "食べる → 食べました"
+        past_negative:
+          plain: 
+            pattern: なかった
+            example: "食べる → 食べなかった"
+          polite: 
+            pattern: ませんでした
+            example: "食べる → 食べませんでした"
+        te_form:
+          pattern: て
+          example: "食べる → 食べて"
+        potential:
+          pattern: られる
+          example: "食べる → 食べられる"
+        passive:
+          pattern: られる
+          example: "食べる → 食べられる"
+        causative:
+          pattern: させる
+          example: "食べる → 食べさせる"
+        volitional:
+          plain:
+            pattern: よう
+            example: "食べる → 食べよう"
+          polite:
+            pattern: ましょう
+            example: "食べる → 食べましょう"
+
+adjective_rules:
+  i_adjectives:
+    adj-i:
+      base_ending: い
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: い
+            example: "高い → 高い"
+          polite: 
+            pattern: いです
+            example: "高い → 高いです"
+        present_negative:
+          plain: 
+            pattern: くない
+            example: "高い → 高くない"
+          polite: 
+            pattern: くありません
+            example: "高い → 高くありません"
+        past_positive:
+          plain: 
+            pattern: かった
+            example: "高い → 高かった"
+          polite: 
+            pattern: かったです
+            example: "高い → 高かったです"
+        past_negative:
+          plain: 
+            pattern: くなかった
+            example: "高い → 高くなかった"
+          polite: 
+            pattern: くありませんでした
+            example: "高い → 高くありませんでした"
+        te_form:
+          pattern: くて
+          example: "高い → 高くて"
+        adverb:
+          pattern: く
+          example: "高い → 高く"
+
+  na_adjectives:
+    adj-na:
+      conjugations:
+        present_positive:
+          plain: 
+            pattern: だ
+            example: "静か → 静かだ"
+          polite: 
+            pattern: です
+            example: "静か → 静かです"
+        present_negative:
+          plain: 
+            pattern: じゃない
+            example: "静か → 静かじゃない"
+          polite: 
+            pattern: ではありません
+            example: "静か → 静かではありません"
+          alternative_polite:
+            pattern: じゃありません
+            example: "静か → 静かじゃありません"
+        past_positive:
+          plain: 
+            pattern: だった
+            example: "静か → 静かだった"
+          polite: 
+            pattern: でした
+            example: "静か → 静かでした"
+        past_negative:
+          plain: 
+            pattern: じゃなかった
+            example: "静か → 静かじゃなかった"
+          polite: 
+            pattern: ではありませんでした
+            example: "静か → 静かではありませんでした"
+          alternative_polite:
+            pattern: じゃありませんでした
+            example: "静か → 静かじゃありませんでした"
+        te_form:
+          pattern: で
+          example: "静か → 静かで"
+        adverb:
+          pattern: に
+          example: "静か → 静かに"
+        attributive:
+          pattern: な
+          example: "静か → 静かな"
+        conditional:
+          pattern: なら
+          example: "静か → 静かなら"
+        stem:
+          pattern: ""
+          example: "静か → 静か"
