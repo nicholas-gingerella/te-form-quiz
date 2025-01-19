@@ -109,4 +109,4 @@ def test_processing(xml_file: str, num_entries: int = 5):
         processor.close()
 
 if __name__ == '__main__':
-    test_processing('JMdict_e.xml', num_entries=5)
+    test_processing('JMdict_e.xml', num_entries=10000)

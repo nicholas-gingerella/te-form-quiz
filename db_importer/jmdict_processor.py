@@ -340,7 +340,7 @@ class JMdictProcessor:
         return {
             'hiragana': result[0]['hira'],
             'katakana': result[0]['kana'],
-            'romaji': result[0]['roma']
+            'romaji': result[0]['passport']
         }
 
     def _insert_conjugations(self, entry_id: int, conjugations: List[Dict]):
