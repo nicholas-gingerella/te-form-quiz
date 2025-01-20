@@ -46,14 +46,41 @@ class JMdictProcessor:
         if text and text.startswith('&') and text.endswith(';'):
             return text[1:-1]
         return text
+    
+    def _update_frequency_rating(self, entry_id: int):
+        """Calculate and update the frequency rating for an entry."""
+        try:
+            self.cur.execute("""
+                WITH rating_scores AS (
+                    SELECT 
+                        CASE 
+                            WHEN rating_type LIKE 'news%' THEN 5
+                            WHEN rating_type LIKE 'ichi%' THEN 4
+                            WHEN rating_type LIKE 'spec%' THEN 3
+                            WHEN rating_type LIKE 'gai%' THEN 2
+                            ELSE 1
+                        END as score
+                    FROM frequency_ratings
+                    WHERE entry_id = %s
+                )
+                UPDATE entries 
+                SET frequency_rating = COALESCE(
+                    (SELECT MAX(score) FROM rating_scores),
+                    0  -- Default rating if no scores found
+                )
+                WHERE id = %s
+            """, (entry_id, entry_id))
+        except Exception as e:
+            logging.error(f"Error updating frequency rating for entry {entry_id}: {str(e)}")
+            # Don't raise the exception, just log it
 
     def _map_pos(self, pos: str) -> str:
-        """Map full text POS to conjugation rule keys."""
+        """Map full text POS to parts_of_speech code."""
         logging.debug(f"Mapping POS: {pos}")
         pos_mapping = {
             'adjective (keiyoushi)': 'adj-i',
             'adjectival nouns or quasi-adjectives (keiyodoshi)': 'adj-na',
-            'adj-i': 'adj-i',  # Direct mappings for already-correct formats
+            'adj-i': 'adj-i',
             'adj-na': 'adj-na',
             "Godan verb with 'u' ending": 'v5u',
             "Godan verb with 'ku' ending": 'v5k',
@@ -341,10 +368,17 @@ class JMdictProcessor:
             self.cur,
             """
             INSERT INTO conjugations 
-            (entry_id, kanji_form, hiragana_reading, katakana_reading, romaji_reading)
+            (entry_id, conjugation_type, form, kanji_form, hiragana_reading, 
+             katakana_reading, romaji_reading)
             VALUES %s
             """,
-            [(entry_id, c['kanji_form'], c['hiragana'], c['katakana'], c['romaji']) 
+            [(entry_id, 
+              c['conjugation_type'],
+              c['form'],
+              c['kanji_form'], 
+              c['hiragana'], 
+              c['katakana'], 
+              c['romaji']) 
              for c in conjugations]
         )
 
@@ -382,30 +416,32 @@ class JMdictProcessor:
         
         logging.info(f"Completed processing {entries_processed} entries")
 
-
     def _insert_batch(self, entries: List[Dict]):
         """Insert a batch of entries into the database."""
         try:
             # Start transaction
             self.cur.execute("BEGIN")
             
-            # Insert entries and get their IDs
-            entry_values = [(e['ent_seq'],) for e in entries]
+            # Create temporary table for batch insert
             self.cur.execute("""
                 CREATE TEMPORARY TABLE temp_entries (
-                    ent_seq INTEGER
+                    ent_seq INTEGER,
+                    frequency_rating INTEGER
                 ) ON COMMIT DROP
             """)
             
+            # Insert entries and get their IDs
+            entry_values = [(e['ent_seq'], None) for e in entries]  # We'll calculate frequency rating later
             execute_values(
                 self.cur,
-                "INSERT INTO temp_entries (ent_seq) VALUES %s",
+                "INSERT INTO temp_entries (ent_seq, frequency_rating) VALUES %s",
                 entry_values
             )
             
+            # Insert into main entries table
             self.cur.execute("""
-                INSERT INTO entries (ent_seq)
-                SELECT ent_seq FROM temp_entries
+                INSERT INTO entries (ent_seq, frequency_rating)
+                SELECT ent_seq, frequency_rating FROM temp_entries
                 RETURNING id, ent_seq
             """)
             
@@ -415,17 +451,20 @@ class JMdictProcessor:
             for entry in entries:
                 entry_id = entry_ids[entry['ent_seq']]
                 
-                # Insert kanji elements
+                # Insert kanji elements and frequency ratings
                 self._insert_kanji_elements(entry_id, entry['kanji_elements'])
                 
-                # Insert reading elements
+                # Insert reading elements and their variations
                 self._insert_reading_elements(entry_id, entry['reading_elements'])
                 
-                # Insert sense elements and related data
+                # Insert sense elements and all related data
                 self._insert_sense_elements(entry_id, entry['sense_elements'])
                 
                 # Generate and insert conjugations if applicable
                 self._process_conjugations(entry_id, entry)
+                
+                # Calculate and update frequency rating based on priorities
+                self._update_frequency_rating(entry_id)
             
             # Commit transaction
             self.conn.commit()
@@ -446,15 +485,28 @@ class JMdictProcessor:
             
             kanji_id = self.cur.fetchone()[0]
             
-            # Insert metadata
+            # Insert usage notes for irregular kanji usage
             if k_ele['info']:
                 execute_values(
                     self.cur,
                     """
-                    INSERT INTO kanji_metadata (kanji_element_id, info_type)
+                    INSERT INTO usage_notes 
+                    (entry_id, note_type, note_text)
                     VALUES %s
                     """,
-                    [(kanji_id, info) for info in k_ele['info']]
+                    [(entry_id, 'kanji_usage', info) for info in k_ele['info']]
+                )
+            
+            # Insert priority/frequency information
+            if k_ele['priority']:
+                execute_values(
+                    self.cur,
+                    """
+                    INSERT INTO frequency_ratings 
+                    (entry_id, rating_type, source)
+                    VALUES %s
+                    """,
+                    [(entry_id, pri, 'kanji_priority') for pri in k_ele['priority']]
                 )
 
     def _insert_reading_elements(self, entry_id: int, reading_elements: List[Dict]):
@@ -463,29 +515,49 @@ class JMdictProcessor:
             # Convert reading to different scripts
             readings = self._get_readings(r_ele['reading'])
             
-            self.cur.execute("""
+            # Insert hiragana reading (original)
+            execute_values(
+                self.cur,
+                """
                 INSERT INTO reading_elements 
                 (entry_id, reading, reading_type, no_kanji, priority_order)
-                VALUES 
-                (%s, %s, %s, %s, %s)
-                RETURNING id
-            """, (entry_id, r_ele['reading'], 'hiragana', r_ele['no_kanji'], i))
+                VALUES %s
+                """,
+                [(entry_id, r_ele['reading'], 'hiragana', r_ele['no_kanji'], i)]
+            )
             
-            reading_id = self.cur.fetchone()[0]
+            # Insert katakana and romaji readings
+            additional_readings = [
+                (entry_id, readings['katakana'], 'katakana', r_ele['no_kanji'], i),
+                (entry_id, readings['romaji'], 'romaji', r_ele['no_kanji'], i)
+            ]
             
-            # Insert additional reading types
-            for reading_type, reading in readings.items():
-                if reading_type != 'hiragana':  # Already inserted above
-                    self.cur.execute("""
-                        INSERT INTO reading_elements 
-                        (entry_id, reading, reading_type, no_kanji, priority_order)
-                        VALUES 
-                        (%s, %s, %s, %s, %s)
-                    """, (entry_id, reading, reading_type, r_ele['no_kanji'], i))
+            execute_values(
+                self.cur,
+                """
+                INSERT INTO reading_elements 
+                (entry_id, reading, reading_type, no_kanji, priority_order)
+                VALUES %s
+                """,
+                additional_readings
+            )
+            
+            # Insert priority information into frequency_ratings if available
+            if r_ele['priority']:
+                execute_values(
+                    self.cur,
+                    """
+                    INSERT INTO frequency_ratings 
+                    (entry_id, rating_type, source)
+                    VALUES %s
+                    """,
+                    [(entry_id, pri, 'reading_priority') for pri in r_ele['priority']]
+                )
 
     def _insert_sense_elements(self, entry_id: int, sense_elements: List[Dict]):
         """Insert sense elements and related data for an entry."""
         for i, sense in enumerate(sense_elements, 1):
+            # Insert sense element
             self.cur.execute("""
                 INSERT INTO sense_elements (entry_id, sense_order)
                 VALUES (%s, %s)
@@ -496,43 +568,165 @@ class JMdictProcessor:
             
             # Insert parts of speech
             if sense['pos']:
-                execute_values(
-                    self.cur,
-                    """
-                    INSERT INTO sense_pos (sense_id, pos_id)
-                    SELECT %s, id FROM pos WHERE code = ANY(%s)
-                    """,
-                    [(sense_id, sense['pos'])]
-                )
+                # First get the IDs for the parts of speech
+                pos_ids = []
+                for pos_code in sense['pos']:
+                    self.cur.execute("""
+                        SELECT id FROM parts_of_speech WHERE code = %s
+                    """, (self._map_pos(pos_code),))
+                    result = self.cur.fetchone()
+                    if result:
+                        pos_ids.append(result[0])
+                
+                # Then insert the relationships
+                if pos_ids:
+                    pos_values = [(sense_id, pos_id) for pos_id in pos_ids]
+                    execute_values(
+                        self.cur,
+                        """
+                        INSERT INTO sense_parts_of_speech (sense_id, part_of_speech_id)
+                        VALUES %s
+                        """,
+                        pos_values
+                    )
             
-            # Insert fields
+            # Insert subject fields
             if sense['field']:
-                execute_values(
-                    self.cur,
-                    """
-                    INSERT INTO sense_fields (sense_id, field_id)
-                    SELECT %s, id FROM fields WHERE code = ANY(%s)
-                    """,
-                    [(sense_id, sense['field'])]
-                )
+                # First get the IDs for the fields
+                field_ids = []
+                for field_code in sense['field']:
+                    self.cur.execute("""
+                        SELECT id FROM subject_fields WHERE code = %s
+                    """, (self._strip_entity_refs(field_code),))
+                    result = self.cur.fetchone()
+                    if result:
+                        field_ids.append(result[0])
+                
+                # Then insert the relationships
+                if field_ids:
+                    field_values = [(sense_id, field_id) for field_id in field_ids]
+                    execute_values(
+                        self.cur,
+                        """
+                        INSERT INTO sense_subject_fields (sense_id, subject_field_id)
+                        VALUES %s
+                        """,
+                        field_values
+                    )
             
-            # Insert glosses
+            # Insert definitions
             if sense['glosses']:
+                definition_values = [
+                    (sense_id, g['text'], g['lang'], g['type']) 
+                    for g in sense['glosses']
+                ]
                 execute_values(
                     self.cur,
                     """
-                    INSERT INTO glosses (sense_id, gloss_text, lang, gloss_type)
+                    INSERT INTO definitions 
+                    (sense_id, definition_text, language, definition_type)
                     VALUES %s
                     """,
-                    [(sense_id, g['text'], g['lang'], g['type']) 
-                     for g in sense['glosses']]
+                    definition_values
                 )
+
+    def initialize_reference_tables(self):
+        """Initialize reference tables with required data."""
+        logging.info("Initializing reference tables...")
+        
+        try:
+            # Initialize parts of speech
+            pos_data = [
+                ('adj-i', 'い-adjective', 'Adjective (keiyoushi)'),
+                ('adj-na', 'な-adjective', 'Adjectival nouns or quasi-adjectives (keiyodoshi)'),
+                ('v1', 'Ichidan verb', 'Ichidan verb (one-step verb)'),
+                ('v5u', 'Godan verb with u ending', 'Godan verb with u ending'),
+                ('v5k', 'Godan verb with ku ending', 'Godan verb with ku ending'),
+                ('v5g', 'Godan verb with gu ending', 'Godan verb with gu ending'),
+                ('v5s', 'Godan verb with su ending', 'Godan verb with su ending'),
+                ('v5t', 'Godan verb with tsu ending', 'Godan verb with tsu ending'),
+                ('v5n', 'Godan verb with nu ending', 'Godan verb with nu ending'),
+                ('v5b', 'Godan verb with bu ending', 'Godan verb with bu ending'),
+                ('v5m', 'Godan verb with mu ending', 'Godan verb with mu ending'),
+                ('v5r', 'Godan verb with ru ending', 'Godan verb with ru ending'),
+                ('n', 'Noun', 'Common noun (futsuumeishi)'),
+                ('adv', 'Adverb', 'Adverb (fukushi)'),
+                ('prt', 'Particle', 'Particle'),
+                ('conj', 'Conjunction', 'Conjunction'),
+                ('int', 'Interjection', 'Interjection (kandoushi)'),
+                ('pref', 'Prefix', 'Prefix'),
+                ('suf', 'Suffix', 'Suffix'),
+                ('ctr', 'Counter', 'Counter word'),
+                ('exp', 'Expression', 'Expression'),
+                ('aux', 'Auxiliary', 'Auxiliary'),
+                ('unc', 'Unclassified', 'Unclassified')
+            ]
+            
+            logging.info("Populating parts_of_speech table...")
+            execute_values(
+                self.cur,
+                """
+                INSERT INTO parts_of_speech (code, name, description)
+                VALUES %s
+                ON CONFLICT (code) DO NOTHING
+                """,
+                pos_data
+            )
+            
+            # Initialize subject fields
+            field_data = [
+                ('agric', 'Agriculture', 'Terms related to agriculture'),
+                ('anat', 'Anatomy', 'Anatomical terms'),
+                ('archit', 'Architecture', 'Architectural terms'),
+                ('art', 'Art', 'Art terms'),
+                ('astron', 'Astronomy', 'Astronomical terms'),
+                ('baseb', 'Baseball', 'Baseball terms'),
+                ('biol', 'Biology', 'Biological terms'),
+                ('bot', 'Botany', 'Botanical terms'),
+                ('bus', 'Business', 'Business terms'),
+                ('chem', 'Chemistry', 'Chemistry terms'),
+                ('comp', 'Computing', 'Computer terminology'),
+                ('econ', 'Economics', 'Economic terms'),
+                ('engr', 'Engineering', 'Engineering terms'),
+                ('food', 'Food', 'Food and cooking terms'),
+                ('geom', 'Geometry', 'Geometric terms'),
+                ('law', 'Law', 'Legal terms'),
+                ('ling', 'Linguistics', 'Linguistic terms'),
+                ('MA', 'Martial Arts', 'Martial arts terms'),
+                ('math', 'Mathematics', 'Mathematical terms'),
+                ('med', 'Medicine', 'Medical terms'),
+                ('mil', 'Military', 'Military terms'),
+                ('music', 'Music', 'Musical terms'),
+                ('physics', 'Physics', 'Physics terms'),
+                ('sports', 'Sports', 'Sports terms'),
+                ('sumo', 'Sumo', 'Sumo terms')
+            ]
+            
+            logging.info("Populating subject_fields table...")
+            execute_values(
+                self.cur,
+                """
+                INSERT INTO subject_fields (code, name, description)
+                VALUES %s
+                ON CONFLICT (code) DO NOTHING
+                """,
+                field_data
+            )
+            
+            # Commit the changes
+            self.conn.commit()
+            logging.info("Reference tables initialized successfully")
+            
+        except Exception as e:
+            self.conn.rollback()
+            logging.error(f"Error initializing reference tables: {str(e)}")
+            raise
 
 def main():
     # Configuration
     db_config = DatabaseConfig(
         host='localhost',
-        database='japanese_quiz',
+        database='japanese_dictionary',
         user='user',
         password='password'
     )
@@ -544,15 +738,26 @@ def main():
     )
     
     try:
-        # Process the file
+        # Initialize reference tables
+        logging.info("Initializing database reference tables...")
+        processor.initialize_reference_tables()
+        
+        # Process the dictionary file
+        logging.info("Starting dictionary file processing...")
         processor.process_file('JMdict_e.xml', batch_size=1000)
         
+        logging.info("Processing completed successfully")
+        
     except Exception as e:
-        logging.error(f"Error processing file: {str(e)}")
+        logging.error(f"Error during processing: {str(e)}")
         raise
         
     finally:
         processor.close()
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     main()
