@@ -42,7 +42,8 @@ def test_import(xml_file: str, num_entries: int = 5):
         
         # Get first n entries
         test_entries = []
-        for entry in root.findall('entry')[:num_entries]:
+        # for entry in root.findall('entry')[:num_entries]:
+        for entry in root.findall('entry'):
             ent_seq = entry.find('ent_seq').text
             logging.info(f"\nProcessing entry {ent_seq}")
             
