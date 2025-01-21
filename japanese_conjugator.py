@@ -56,6 +56,16 @@ class JapaneseConjugator:
                 past_kana = stem_kana + 'った'
                 te_kanji = stem_kanji + 'って' if word_kanji else ""
                 te_kana = stem_kana + 'って'
+            elif ending_kana == 'く':  # k-row verbs
+                past_kanji = stem_kanji + 'いた' if word_kanji else ""
+                past_kana = stem_kana + 'いた'
+                te_kanji = stem_kanji + 'いて' if word_kanji else ""
+                te_kana = stem_kana + 'いて'
+            elif ending_kana == 'ぐ':  # g-row verbs
+                past_kanji = stem_kanji + 'いだ' if word_kanji else ""
+                past_kana = stem_kana + 'いだ'
+                te_kanji = stem_kanji + 'いで' if word_kanji else ""
+                te_kana = stem_kana + 'いで'
             else:
                 past_kanji = stem_kanji + stem_map['i'] + 'た' if word_kanji else ""
                 past_kana = stem_kana + stem_map['i'] + 'た'
@@ -196,16 +206,16 @@ class JapaneseConjugator:
             conjugations.update({
                 'present': {'kanji': word_kanji, 'kana': word_kana},
                 'present_negative': {
-                    'kanji': word_kanji + 'ではない' if word_kanji else "",
-                    'kana': word_kana + 'ではない'
+                    'kanji': word_kanji + 'じゃない' if word_kanji else "",
+                    'kana': word_kana + 'じゃない'
                 },
                 'past': {
                     'kanji': word_kanji + 'だった' if word_kanji else "",
                     'kana': word_kana + 'だった'
                 },
                 'past_negative': {
-                    'kanji': word_kanji + 'ではなかった' if word_kanji else "",
-                    'kana': word_kana + 'ではなかった'
+                    'kanji': word_kanji + 'じゃなかった' if word_kanji else "",
+                    'kana': word_kana + 'じゃなかった'
                 },
                 'te_form': {
                     'kanji': word_kanji + 'で' if word_kanji else "",
