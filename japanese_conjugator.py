@@ -28,90 +28,193 @@ class JapaneseConjugator:
 
     def get_verb_stem(self, word, verb_type):
         """Get the stem of a verb based on its type."""
-        if verb_type in self.godan_endings:
-            return word[:-1]
-        elif verb_type in ['v1', 'vk']:  # ichidan and kuru verbs
+        if verb_type in self.godan_endings or verb_type in ['v1', 'vk']:
             return word[:-1]
         return word
 
-    def conjugate_verb(self, word, verb_type):
-        """Generate conjugations for a verb."""
+    def conjugate_verb(self, word_kanji, word_kana, verb_type):
+        """Generate conjugations for a verb with both kanji and kana forms."""
         conjugations = {}
         
-        # Get the basic stem
-        stem = self.get_verb_stem(word, verb_type)
+        # Get the basic stems
+        stem_kanji = self.get_verb_stem(word_kanji, verb_type) if word_kanji else ""
+        stem_kana = self.get_verb_stem(word_kana, verb_type)
         
         if verb_type in self.godan_endings:  # Godan verbs
-            ending = word[-1]
-            stem_map = self.godan_stem_map[ending]
+            ending_kanji = word_kanji[-1] if word_kanji else ""
+            ending_kana = word_kana[-1]
+            stem_map = self.godan_stem_map[ending_kana]  # Use kana ending for mapping
+            
+            # Special conjugation rules for certain verb endings
+            if ending_kana in ['む', 'ぶ', 'ぬ']:  # m, b, n-row verbs
+                past_kanji = stem_kanji + 'んだ' if word_kanji else ""
+                past_kana = stem_kana + 'んだ'
+                te_kanji = stem_kanji + 'んで' if word_kanji else ""
+                te_kana = stem_kana + 'んで'
+            elif ending_kana in ['つ', 'る', 'う']:  # t, r, u-row verbs
+                past_kanji = stem_kanji + 'った' if word_kanji else ""
+                past_kana = stem_kana + 'った'
+                te_kanji = stem_kanji + 'って' if word_kanji else ""
+                te_kana = stem_kana + 'って'
+            else:
+                past_kanji = stem_kanji + stem_map['i'] + 'た' if word_kanji else ""
+                past_kana = stem_kana + stem_map['i'] + 'た'
+                te_kanji = stem_kanji + stem_map['i'] + 'て' if word_kanji else ""
+                te_kana = stem_kana + stem_map['i'] + 'て'
             
             conjugations.update({
-                'present': word,
-                'present_negative': stem + stem_map['a'] + 'ない',
-                'past': stem + stem_map['i'] + 'た',
-                'past_negative': stem + stem_map['a'] + 'なかった',
-                'te_form': stem + stem_map['i'] + 'て',
-                'potential': stem + stem_map['e'] + 'る',
-                'passive': stem + stem_map['a'] + 'れる',
-                'causative': stem + stem_map['a'] + 'せる',
-                'imperative': stem + stem_map['e'],
-                'volitional': stem + stem_map['o'] + 'う'
+                'present': {'kanji': word_kanji, 'kana': word_kana},
+                'present_negative': {
+                    'kanji': stem_kanji + stem_map['a'] + 'ない' if word_kanji else "",
+                    'kana': stem_kana + stem_map['a'] + 'ない'
+                },
+                'past': {
+                    'kanji': past_kanji,
+                    'kana': past_kana
+                },
+                'past_negative': {
+                    'kanji': stem_kanji + stem_map['a'] + 'なかった' if word_kanji else "",
+                    'kana': stem_kana + stem_map['a'] + 'なかった'
+                },
+                'te_form': {
+                    'kanji': te_kanji,
+                    'kana': te_kana
+                },
+                'potential': {
+                    'kanji': stem_kanji + stem_map['e'] + 'る' if word_kanji else "",
+                    'kana': stem_kana + stem_map['e'] + 'る'
+                },
+                'passive': {
+                    'kanji': stem_kanji + stem_map['a'] + 'れる' if word_kanji else "",
+                    'kana': stem_kana + stem_map['a'] + 'れる'
+                },
+                'causative': {
+                    'kanji': stem_kanji + stem_map['a'] + 'せる' if word_kanji else "",
+                    'kana': stem_kana + stem_map['a'] + 'せる'
+                },
+                'imperative': {
+                    'kanji': stem_kanji + stem_map['e'] if word_kanji else "",
+                    'kana': stem_kana + stem_map['e']
+                },
+                'volitional': {
+                    'kanji': stem_kanji + stem_map['o'] + 'う' if word_kanji else "",
+                    'kana': stem_kana + stem_map['o'] + 'う'
+                }
             })
             
         elif verb_type == 'v1':  # Ichidan verbs
             conjugations.update({
-                'present': word,
-                'present_negative': stem + 'ない',
-                'past': stem + 'た',
-                'past_negative': stem + 'なかった',
-                'te_form': stem + 'て',
-                'potential': stem + 'られる',
-                'passive': stem + 'られる',
-                'causative': stem + 'させる',
-                'imperative': stem + 'ろ',
-                'volitional': stem + 'よう'
+                'present': {'kanji': word_kanji, 'kana': word_kana},
+                'present_negative': {
+                    'kanji': stem_kanji + 'ない' if word_kanji else "",
+                    'kana': stem_kana + 'ない'
+                },
+                'past': {
+                    'kanji': stem_kanji + 'た' if word_kanji else "",
+                    'kana': stem_kana + 'た'
+                },
+                'past_negative': {
+                    'kanji': stem_kanji + 'なかった' if word_kanji else "",
+                    'kana': stem_kana + 'なかった'
+                },
+                'te_form': {
+                    'kanji': stem_kanji + 'て' if word_kanji else "",
+                    'kana': stem_kana + 'て'
+                },
+                'potential': {
+                    'kanji': stem_kanji + 'られる' if word_kanji else "",
+                    'kana': stem_kana + 'られる'
+                },
+                'passive': {
+                    'kanji': stem_kanji + 'られる' if word_kanji else "",
+                    'kana': stem_kana + 'られる'
+                },
+                'causative': {
+                    'kanji': stem_kanji + 'させる' if word_kanji else "",
+                    'kana': stem_kana + 'させる'
+                },
+                'imperative': {
+                    'kanji': stem_kanji + 'ろ' if word_kanji else "",
+                    'kana': stem_kana + 'ろ'
+                },
+                'volitional': {
+                    'kanji': stem_kanji + 'よう' if word_kanji else "",
+                    'kana': stem_kana + 'よう'
+                }
             })
             
         elif verb_type == 'vk':  # Kuru verb (irregular)
-            if word == '来る':
+            if word_kana == 'くる':
                 conjugations.update({
-                    'present': '来る',
-                    'present_negative': '来ない',
-                    'past': '来た',
-                    'past_negative': '来なかった',
-                    'te_form': '来て',
-                    'potential': '来られる',
-                    'passive': '来られる',
-                    'causative': '来させる',
-                    'imperative': '来い',
-                    'volitional': '来よう'
+                    'present': {'kanji': '来る', 'kana': 'くる'},
+                    'present_negative': {'kanji': '来ない', 'kana': 'こない'},
+                    'past': {'kanji': '来た', 'kana': 'きた'},
+                    'past_negative': {'kanji': '来なかった', 'kana': 'こなかった'},
+                    'te_form': {'kanji': '来て', 'kana': 'きて'},
+                    'potential': {'kanji': '来られる', 'kana': 'こられる'},
+                    'passive': {'kanji': '来られる', 'kana': 'こられる'},
+                    'causative': {'kanji': '来させる', 'kana': 'こさせる'},
+                    'imperative': {'kanji': '来い', 'kana': 'こい'},
+                    'volitional': {'kanji': '来よう', 'kana': 'こよう'}
                 })
 
         return conjugations
 
-    def conjugate_adjective(self, word, adj_type):
-        """Generate conjugations for an adjective."""
+    def conjugate_adjective(self, word_kanji, word_kana, adj_type):
+        """Generate conjugations for an adjective with both kanji and kana forms."""
         conjugations = {}
         
         if adj_type == 'adj-i':  # i-adjectives
-            stem = word[:-1]  # Remove い
+            stem_kanji = word_kanji[:-1] if word_kanji else ""  # Remove い
+            stem_kana = word_kana[:-1]  # Remove い
+            
             conjugations.update({
-                'present': word,
-                'present_negative': stem + 'くない',
-                'past': stem + 'かった',
-                'past_negative': stem + 'くなかった',
-                'te_form': stem + 'くて',
-                'adverbial': stem + 'く'
+                'present': {'kanji': word_kanji, 'kana': word_kana},
+                'present_negative': {
+                    'kanji': stem_kanji + 'くない' if word_kanji else "",
+                    'kana': stem_kana + 'くない'
+                },
+                'past': {
+                    'kanji': stem_kanji + 'かった' if word_kanji else "",
+                    'kana': stem_kana + 'かった'
+                },
+                'past_negative': {
+                    'kanji': stem_kanji + 'くなかった' if word_kanji else "",
+                    'kana': stem_kana + 'くなかった'
+                },
+                'te_form': {
+                    'kanji': stem_kanji + 'くて' if word_kanji else "",
+                    'kana': stem_kana + 'くて'
+                },
+                'adverbial': {
+                    'kanji': stem_kanji + 'く' if word_kanji else "",
+                    'kana': stem_kana + 'く'
+                }
             })
             
         elif adj_type == 'adj-na':  # na-adjectives
             conjugations.update({
-                'present': word,
-                'present_negative': word + 'ではない',
-                'past': word + 'だった',
-                'past_negative': word + 'ではなかった',
-                'te_form': word + 'で',
-                'adverbial': word + 'に'
+                'present': {'kanji': word_kanji, 'kana': word_kana},
+                'present_negative': {
+                    'kanji': word_kanji + 'ではない' if word_kanji else "",
+                    'kana': word_kana + 'ではない'
+                },
+                'past': {
+                    'kanji': word_kanji + 'だった' if word_kanji else "",
+                    'kana': word_kana + 'だった'
+                },
+                'past_negative': {
+                    'kanji': word_kanji + 'ではなかった' if word_kanji else "",
+                    'kana': word_kana + 'ではなかった'
+                },
+                'te_form': {
+                    'kanji': word_kanji + 'で' if word_kanji else "",
+                    'kana': word_kana + 'で'
+                },
+                'adverbial': {
+                    'kanji': word_kanji + 'に' if word_kanji else "",
+                    'kana': word_kana + 'に'
+                }
             })
             
         return conjugations
@@ -121,10 +224,11 @@ def process_dictionary_entry(entry):
     conjugator = JapaneseConjugator()
     results = []
     
-    # Get the word's basic form
+    # Get both kanji and kana forms
     kanji = entry.get('kanji', [])
     kana = entry.get('kana', [])
-    word_text = kanji[0]['text'] if kanji else kana[0]['text']
+    word_kanji = kanji[0]['text'] if kanji else ""
+    word_kana = kana[0]['text'] if kana else ""
     
     # Collect all unique parts of speech across all senses
     all_pos = set()
@@ -141,24 +245,23 @@ def process_dictionary_entry(entry):
     
     # Generate conjugations for each unique type
     for verb_type in verb_types:
-        conjugations = conjugator.conjugate_verb(word_text, verb_type)
+        conjugations = conjugator.conjugate_verb(word_kanji, word_kana, verb_type)
         results.append({
-            'word': word_text,
+            'word': {'kanji': word_kanji, 'kana': word_kana},
             'type': verb_type,
             'conjugations': conjugations
         })
             
     for adj_type in adj_types:
-        conjugations = conjugator.conjugate_adjective(word_text, adj_type)
+        conjugations = conjugator.conjugate_adjective(word_kanji, word_kana, adj_type)
         results.append({
-            'word': word_text,
+            'word': {'kanji': word_kanji, 'kana': word_kana},
             'type': adj_type,
             'conjugations': conjugations
         })
                 
     return results
 
-# Example usage
 if __name__ == "__main__":
     import json
     
@@ -171,9 +274,12 @@ if __name__ == "__main__":
         results = process_dictionary_entry(entry)
         if results:  # Only print entries that have conjugations
             for result in results:
-                print(f"\nWord: {result['word']}")
+                print(f"\nWord: {result['word']['kanji']} ({result['word']['kana']})")
                 print(f"Type: {result['type']}")
                 print("Conjugations:")
-                for form, conjugation in result['conjugations'].items():
-                    print(f"  {form}: {conjugation}")
+                for form, conj in result['conjugations'].items():
+                    if conj['kanji']:
+                        print(f"  {form}: {conj['kanji']} ({conj['kana']})")
+                    else:
+                        print(f"  {form}: {conj['kana']}")
                 print("-" * 40)
