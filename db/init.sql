@@ -79,3 +79,11 @@ CREATE TABLE frequency_data (
     frequency NUMERIC,
     PRIMARY KEY (entry_id, source)
 );
+
+CREATE INDEX IF NOT EXISTS idx_writing_forms_text ON writing_forms(form_text);
+CREATE INDEX IF NOT EXISTS idx_senses_entry_id ON senses(entry_id);
+CREATE INDEX IF NOT EXISTS idx_glosses_sense_id ON glosses(sense_id);
+CREATE INDEX IF NOT EXISTS idx_examples_entry_id ON examples(entry_id);
+CREATE INDEX IF NOT EXISTS idx_conjugations_entry_id ON conjugations(entry_id);
+CREATE INDEX IF NOT EXISTS idx_word_relationships_entry_id ON word_relationships(entry_id);
+CREATE INDEX IF NOT EXISTS frequency_rank_idx ON frequency_data(frequency);
