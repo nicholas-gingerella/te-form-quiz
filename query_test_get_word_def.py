@@ -42,17 +42,34 @@ def get_word_definition(word):
         if 'conn' in locals():
             conn.close()
 
-# Example usage
+def process_frequency_report(filename, limit=100):
+    """Process the word frequency report and look up definitions.
+    Args:
+        filename: Path to the word frequency report
+        limit: Maximum number of words to process (default 100)
+    """
+    with open(filename, 'r', encoding='utf-8') as f:
+        for i, line in enumerate(f):
+            if i >= limit:  # Stop after processing limit words
+                break
+                
+            # Parse the line
+            parts = line.strip().split('\t')
+            if len(parts) >= 2:  # Ensure we have at least frequency and word
+                freq = parts[0]
+                word = parts[1]
+                
+                # Get definitions
+                definitions = get_word_definition(word)
+                
+                # Print results
+                print(f"\n{i+1}. {word} (Frequency: {freq})")
+                if definitions:
+                    for definition in definitions:
+                        print(f"  • {definition['definition']}")
+                else:
+                    print("  No definitions found")
+
 if __name__ == "__main__":
-    word = "考える"
-    definitions = get_word_definition(word)
-    
-    print(f"\nDefinitions for {word}:")
-    if definitions:
-        # Use list comprehension instead of explicit loop
-        definition_list = [row['definition'] for row in definitions]
-        # Print each definition on a new line with bullet points
-        for definition in definition_list:
-            print(f"• {definition}")
-    else:
-        print("No definitions found or an error occurred.")
+    report_file = "db_importer/word_frequency_report.txt"
+    process_frequency_report(report_file, limit=20)  # Process top 20 words
