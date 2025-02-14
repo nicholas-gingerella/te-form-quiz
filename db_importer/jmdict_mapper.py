@@ -32,9 +32,23 @@ JMDICT_MAPPING = {
 def get_jmdict_equivalents(category, japanese_identifier):
     return JMDICT_MAPPING.get(category, {}).get(japanese_identifier, [])
 
+def get_word_type(japanese_identifier):
+    """
+    Returns the broad category (noun, verb, etc.) for a given Japanese identifier
+    Args:
+        japanese_identifier: The Japanese part of speech (e.g., '名詞', '動詞')
+    Returns:
+        String: 'noun', 'verb', 'i-adjective', 'na-adjective', or 'other'
+    """
+    for category, mappings in JMDICT_MAPPING.items():
+        if japanese_identifier in mappings:
+            # Remove the 's' from the end of the category name
+            return category.rstrip('s')
+    return 'other'
+
 # Example usage
 if __name__ == "__main__":
-    category = "nouns"
-    test_identifier = "名詞"
-    equivalents = get_jmdict_equivalents(category, test_identifier)
-    print(f"JMDict equivalents for {test_identifier} in {category}: {equivalents}")
+    test_identifiers = ['名詞', '動詞', '形容詞', '形容動詞', '副詞']
+    for identifier in test_identifiers:
+        word_type = get_word_type(identifier)
+        print(f"Japanese POS: {identifier} → Type: {word_type}")
